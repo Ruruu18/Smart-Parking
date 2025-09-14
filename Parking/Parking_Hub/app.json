@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Parking_Hub",
+    "slug": "Parking_Hub",
+    "scheme": "parkinghub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icons/wheel.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icons/wheel.png",
+        "backgroundColor": "#000000"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/icons/wheel.png"
+    }
+  }
+}

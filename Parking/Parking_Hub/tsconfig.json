@@ -1,0 +1,11 @@
+{
+  "extends": "./node_modules/expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-native",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",  
+    "paths": { "@/supabase": ["src/supabase.ts"] }
+  }
+}
