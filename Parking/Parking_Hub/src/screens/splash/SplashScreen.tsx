@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Image, StyleSheet, Dimensions, Text } from 'react-native';
-
-const { width, height } = Dimensions.get('window');
+import { View, Image, StyleSheet, Text } from 'react-native';
+import { getLogoSize, getBrandNameFontSize, createResponsiveStyles } from '../../utils/responsive';
 
 const SplashScreen = ({ navigation }: { navigation: any }) => {
   useEffect(() => {
@@ -33,43 +32,53 @@ const SplashScreen = ({ navigation }: { navigation: any }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 183,
-    height: 183,
-    backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 15,
-    overflow: 'hidden'
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%'
-  },
-  brandNameContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-  brandName: {
-    fontSize: 53,
-    color: '#FFD700',
-    fontFamily: 'Raleway-ExtraBold',
-    marginRight: 10,
-  },
-});
+const createStyles = () => {
+  const responsive = createResponsiveStyles();
+  const logoSize = getLogoSize();
+  const brandNameFontSize = getBrandNameFontSize();
+  
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#000',
+    },
+    contentContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: responsive.padding,
+    },
+    logoWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    logo: {
+      width: logoSize.width,
+      height: logoSize.height,
+      backgroundColor: '#000',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: responsive.isSmallScreen ? 10 : 15,
+      overflow: 'hidden'
+    },
+    logoImage: {
+      width: '100%',
+      height: '100%'
+    },
+    brandNameContainer: {
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+    },
+    brandName: {
+      fontSize: brandNameFontSize,
+      color: '#FFD700',
+      fontFamily: 'Raleway-ExtraBold',
+      marginRight: responsive.isSmallScreen ? 5 : 10,
+      lineHeight: brandNameFontSize * 1.1,
+    },
+  });
+};
+
+const styles = createStyles();
 
 export default SplashScreen;

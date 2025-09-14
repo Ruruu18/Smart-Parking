@@ -1,7 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
-
-const { width, height } = Dimensions.get('window');
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import {
+  createResponsiveStyles,
+  scaledFont,
+  scaledSpacing,
+  getButtonHeight
+} from '../../../utils/responsive';
 
 interface Screen1Props {
   onNext: () => void;
@@ -42,81 +46,92 @@ const Screen1: React.FC<Screen1Props> = ({ onNext, onSkip }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  backgroundImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  textContainer: {
-    marginBottom: 60,
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  carIcon: {
-    width: 36,
-    height: 36,
-    marginRight: 10,
-  },
-  title: {
-    fontFamily: 'Raleway-Light',
-    fontSize: 18,
-    color: '#FFFFFF',
-    marginLeft: 10,
-  },
-  description: {
-    fontFamily: 'Raleway-Regular',
-    fontSize: 33,
-    color: '#FFFFFF',
-    lineHeight: 38,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    width: '100%',
-  },
-  skipButton: {
-    backgroundColor: '#FFFFFF',
-    width: 115,
-    height: 73,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  skipText: {
-    fontFamily: 'Raleway-Medium',
-    color: '#000000',
-    fontSize: 20,
-  },
-  nextButton: {
-    backgroundColor: '#FFD700',
-    width: 184,
-    height: 73,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nextText: {
-    fontFamily: 'Raleway-Medium',
-    color: '#000000',
-    fontSize: 20,
-  },
-});
+const createStyles = () => {
+  const responsive = createResponsiveStyles();
+  const buttonHeight = getButtonHeight();
+  
+  const skipButtonWidth = responsive.isSmallScreen ? 90 : responsive.isMediumScreen ? 105 : 115;
+  const nextButtonWidth = responsive.isSmallScreen ? 150 : responsive.isMediumScreen ? 170 : 184;
+  const iconSize = responsive.isSmallScreen ? 30 : responsive.isMediumScreen ? 33 : 36;
+  
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#000000',
+    },
+    backgroundImage: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+    },
+    contentContainer: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      paddingHorizontal: responsive.padding,
+      paddingBottom: scaledSpacing(40),
+    },
+    textContainer: {
+      marginBottom: scaledSpacing(60),
+    },
+    iconContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: scaledSpacing(16),
+    },
+    carIcon: {
+      width: iconSize,
+      height: iconSize,
+      marginRight: scaledSpacing(10),
+    },
+    title: {
+      fontFamily: 'Raleway-Light',
+      fontSize: scaledFont(18),
+      color: '#FFFFFF',
+      marginLeft: scaledSpacing(10),
+    },
+    description: {
+      fontFamily: 'Raleway-Regular',
+      fontSize: scaledFont(33),
+      color: '#FFFFFF',
+      lineHeight: scaledFont(38),
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: responsive.padding,
+      paddingBottom: scaledSpacing(40),
+      width: '100%',
+    },
+    skipButton: {
+      backgroundColor: '#FFFFFF',
+      width: skipButtonWidth,
+      height: buttonHeight + 20,
+      borderRadius: 15,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    skipText: {
+      fontFamily: 'Raleway-Medium',
+      color: '#000000',
+      fontSize: scaledFont(20),
+    },
+    nextButton: {
+      backgroundColor: '#FFD700',
+      width: nextButtonWidth,
+      height: buttonHeight + 20,
+      borderRadius: 15,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    nextText: {
+      fontFamily: 'Raleway-Medium',
+      color: '#000000',
+      fontSize: scaledFont(20),
+    },
+  });
+};
+
+const styles = createStyles();
 
 export default Screen1;

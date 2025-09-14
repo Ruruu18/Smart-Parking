@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/auth/AuthContext';
+import { 
+  getLogoSize, 
+  getBrandNameFontSize, 
+  createResponsiveStyles, 
+  scaledFont, 
+  getInputHeight, 
+  getButtonHeight,
+  scaledSpacing 
+} from '../../utils/responsive';
 
 type NavigationProps = {
   navigate: (screen: string) => void;
@@ -123,132 +132,141 @@ const LoginScreen = () => {
   );
 };
 
-const { width, height } = Dimensions.get('window');
+const createStyles = () => {
+  const responsive = createResponsiveStyles();
+  const logoSize = getLogoSize();
+  const brandNameFontSize = getBrandNameFontSize();
+  const inputHeight = getInputHeight();
+  const buttonHeight = getButtonHeight();
+  
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#000000',
+      justifyContent: 'center',
+      paddingHorizontal: responsive.padding,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: scaledSpacing(48),
+    },
+    logoWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    logo: {
+      width: logoSize.width,
+      height: logoSize.height,
+      backgroundColor: '#000',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: responsive.isSmallScreen ? 10 : 15,
+      overflow: 'hidden'
+    },
+    logoImage: {
+      width: '100%',
+      height: '100%'
+    },
+    brandName: {
+      fontSize: brandNameFontSize,
+      color: '#FFD700',
+      fontFamily: 'Raleway-ExtraBold',
+      marginRight: responsive.isSmallScreen ? 5 : 10,
+      lineHeight: brandNameFontSize * 1.1,
+    },
+    title: {
+      fontSize: scaledFont(20),
+      marginBottom: scaledSpacing(28),
+      color: 'white',
+      fontFamily: 'Raleway-Regular',
+      textAlign: 'center',
+    },
+    form: {
+      width: '100%',
+    },
+    input: {
+      width: '100%',
+      height: inputHeight,
+      paddingHorizontal: responsive.padding,
+      marginBottom: scaledSpacing(16),
+      borderWidth: 1,
+      borderColor: '#333',
+      borderRadius: 12,
+      backgroundColor: 'transparent',
+      color: 'white',
+      fontSize: scaledFont(16),
+      fontFamily: 'Raleway-Regular',
+    },
+    rememberMeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: scaledSpacing(24),
+      paddingHorizontal: 4,
+    },
+    checkboxContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    checkbox: {
+      width: responsive.isSmallScreen ? 16 : 18,
+      height: responsive.isSmallScreen ? 16 : 18,
+      borderWidth: 1,
+      borderColor: '#666',
+      borderRadius: 4,
+      marginRight: 8,
+    },
+    checkboxChecked: {
+      backgroundColor: '#FFD700',
+      borderColor: '#FFD700',
+    },
+    rememberMeText: {
+      color: '#666',
+      fontSize: scaledFont(13),
+      fontFamily: 'Raleway-Regular',
+    },
+    forgotPassword: {
+      color: '#FFD700',
+      fontSize: scaledFont(13),
+      fontFamily: 'Raleway-Regular',
+    },
+    loginButton: {
+      width: '100%',
+      height: buttonHeight,
+      backgroundColor: '#FFD700',
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: scaledSpacing(24),
+    },
+    loginButtonText: {
+      color: 'black',
+      fontSize: scaledFont(16),
+      fontWeight: '600',
+      fontFamily: 'Raleway-Bold',
+    },
+    signUpRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    signUpText: {
+      color: '#666',
+      fontSize: scaledFont(14),
+      fontFamily: 'Raleway-Regular',
+    },
+    signUpLink: {
+      color: '#FFD700',
+      fontSize: scaledFont(14),
+      fontFamily: 'Raleway-Regular',
+    },
+    brandNameContainer: {
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+    },
+  });
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    paddingHorizontal: width * 0.06,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: height * 0.06,
-  },
-  logoWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 183,
-    height: 183,
-    backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 15,
-    overflow: 'hidden'
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%'
-  },
-  brandName: {
-    fontSize: 53,  
-    color: '#FFD700',
-    fontFamily: 'Raleway-ExtraBold',
-    marginRight: 10,
-  },
-  title: {
-    fontSize: width * 0.055,
-    marginBottom: height * 0.035,
-    color: 'white',
-    fontFamily: 'Raleway-Regular',
-    textAlign: 'center',
-  },
-  form: {
-    width: '100%',
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    paddingHorizontal: width * 0.04,
-    marginBottom: height * 0.02,
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    color: 'white',
-    fontSize: width * 0.038,
-    fontFamily: 'Raleway-Regular',
-  },
-  rememberMeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: height * 0.03,
-    paddingHorizontal: 4,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 1,
-    borderColor: '#666',
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  checkboxChecked: {
-    backgroundColor: '#FFD700',
-    borderColor: '#FFD700',
-  },
-  rememberMeText: {
-    color: '#666',
-    fontSize: 13,
-    fontFamily: 'Raleway-Regular',
-  },
-  forgotPassword: {
-    color: '#FFD700',
-    fontSize: 13,
-    fontFamily: 'Raleway-Regular',
-  },
-  loginButton: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#FFD700',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: height * 0.03,
-  },
-  loginButtonText: {
-    color: 'black',
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: 'Raleway-Bold',
-  },
-  signUpRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  signUpText: {
-    color: '#666',
-    fontSize: 14,
-    fontFamily: 'Raleway-Regular',
-  },
-  signUpLink: {
-    color: '#FFD700',
-    fontSize: 14,
-    fontFamily: 'Raleway-Regular',
-  },
-  brandNameContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-});
+const styles = createStyles();
 
 export default LoginScreen;

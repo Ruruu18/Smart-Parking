@@ -1,8 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
-const { width, height } = Dimensions.get('window');
+import {
+  createResponsiveStyles,
+  scaledFont,
+  scaledSpacing,
+  getButtonHeight
+} from '../../../utils/responsive';
 
 interface Screen3Props {
   onNext: () => void;
@@ -46,70 +50,80 @@ const Screen3: React.FC<Screen3Props> = ({ onSkip }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  backgroundImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingBottom: 60,
-  },
-  iconContainer: {
-    marginBottom: 15,
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  memberIcon: {
-    width: 45,
-    height: 45,
-    resizeMode: 'contain',
-    marginRight: 10,
-  },
-  title: {
-    fontFamily: 'Raleway-Light',
-    fontSize: 18,
-    color: '#fff',
-  },
-  description: {
-    fontFamily: 'Raleway-Regular',
-    fontSize: 38,
-    color: '#fff',
-    lineHeight: 38,
-  },
-  highlightText: {
-    fontFamily: 'Raleway-ExtraBold',
-    color: '#FFD700',
-  },
-  buttonContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 70,
-    alignItems: 'center', 
-  },
-  getButton: {
-    backgroundColor: '#FFD700',
-    width: 201,
-    height: 53,
-    borderRadius: 15,
-    justifyContent: 'center', 
-    alignItems: 'center', 
-  },
-  getText: {
-    color: '#000',
-    fontSize: 20,
-    fontFamily: 'Raleway-SemiBold',
-    textAlign: 'center',
-  },
-});
+const createStyles = () => {
+  const responsive = createResponsiveStyles();
+  const buttonHeight = getButtonHeight();
+  
+  const getButtonWidth = responsive.isSmallScreen ? 160 : responsive.isMediumScreen ? 180 : 201;
+  const iconSize = responsive.isSmallScreen ? 38 : responsive.isMediumScreen ? 42 : 45;
+  
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#000',
+    },
+    backgroundImage: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+    },
+    contentContainer: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      paddingHorizontal: responsive.padding,
+      paddingBottom: scaledSpacing(60),
+    },
+    iconContainer: {
+      marginBottom: scaledSpacing(15),
+    },
+    headerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: scaledSpacing(15),
+    },
+    memberIcon: {
+      width: iconSize,
+      height: iconSize,
+      resizeMode: 'contain',
+      marginRight: scaledSpacing(10),
+    },
+    title: {
+      fontFamily: 'Raleway-Light',
+      fontSize: scaledFont(18),
+      color: '#fff',
+    },
+    description: {
+      fontFamily: 'Raleway-Regular',
+      fontSize: scaledFont(38),
+      color: '#fff',
+      lineHeight: scaledFont(38),
+    },
+    highlightText: {
+      fontFamily: 'Raleway-ExtraBold',
+      color: '#FFD700',
+    },
+    buttonContainer: {
+      paddingHorizontal: responsive.padding,
+      paddingBottom: scaledSpacing(70),
+      alignItems: 'center', 
+    },
+    getButton: {
+      backgroundColor: '#FFD700',
+      width: getButtonWidth,
+      height: buttonHeight + 5,
+      borderRadius: 15,
+      justifyContent: 'center', 
+      alignItems: 'center', 
+    },
+    getText: {
+      color: '#000',
+      fontSize: scaledFont(20),
+      fontFamily: 'Raleway-SemiBold',
+      textAlign: 'center',
+    },
+  });
+};
+
+const styles = createStyles();
 
 export default Screen3;

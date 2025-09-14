@@ -7,10 +7,17 @@ import {
   FlatList,
   Image,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ParkingDetails from './ParkingDetails';
+import {
+  createResponsiveStyles,
+  scaledFont,
+  scaledSpacing,
+  getModalWidth,
+  getCardPadding,
+  SCREEN_WIDTH
+} from '../../../utils/responsive';
 
 // Local fallback image used when a parking space has no image
 const FALLBACK_IMAGE = require('../../../../assets/images/Car.jpg');
@@ -117,82 +124,94 @@ const ParkingSeeMoreModal: React.FC<Props> = ({ visible, onClose, spaces, onStar
   );
 };
 
-const { width } = Dimensions.get('window');
+const createStyles = () => {
+  const responsive = createResponsiveStyles();
+  const modalWidth = getModalWidth();
+  const cardPadding = getCardPadding();
+  
+  const cardWidth = responsive.isSmallScreen 
+    ? (SCREEN_WIDTH * 0.9 - 24) / 2  // Smaller spacing for small screens
+    : (SCREEN_WIDTH * 0.9 - 36) / 2; // Original spacing for larger screens
+  
+  const imageHeight = responsive.isSmallScreen ? 80 : responsive.isMediumScreen ? 90 : 100;
+  
+  return StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    container: {
+      width: modalWidth,
+      maxHeight: '85%',
+      backgroundColor: '#1a1a1a',
+      borderRadius: 20,
+      paddingVertical: scaledSpacing(8),
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: responsive.padding,
+      marginBottom: scaledSpacing(8),
+    },
+    title: {
+      fontFamily: 'Raleway-Bold',
+      fontSize: scaledFont(18),
+      color: '#FFD700',
+    },
+    card: {
+      backgroundColor: '#111',
+      borderRadius: 16,
+      width: cardWidth,
+      marginBottom: scaledSpacing(16),
+      padding: cardPadding,
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    width: '90%',
-    maxHeight: '85%',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 20,
-    paddingVertical: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  title: {
-    fontFamily: 'Raleway-Bold',
-    fontSize: 18,
-    color: '#FFD700',
-  },
-  card: {
-    backgroundColor: '#111',
-    borderRadius: 16,
-    width: (width * 0.9 - 36) / 2, // container 90% width minus spacing -> split 2 columns
-    marginBottom: 16,
-    padding: 10,
+      // Shadow / elevation
+      shadowColor: '#000',
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 5,
+    },
+    image: {
+      width: '100%',
+      height: imageHeight,
+      borderRadius: 12,
+    },
+    name: {
+      fontFamily: 'Raleway-Bold',
+      fontSize: scaledFont(14),
+      color: '#fff',
+      marginTop: scaledSpacing(8),
+    },
+    address: {
+      fontFamily: 'Raleway-Regular',
+      fontSize: scaledFont(11),
+      color: '#ccc',
+      marginLeft: 4,
+      flexShrink: 1,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      marginTop: scaledSpacing(6),
+    },
+    priceMain: {
+      fontFamily: 'Rakkas-Regular',
+      color: '#FFD700',
+      fontSize: scaledFont(20),
+    },
+    priceUnit: {
+      fontFamily: 'Rakkas-Regular',
+      color: '#FFD700',
+      fontSize: scaledFont(12),
+      marginLeft: 2,
+    },
+  });
+};
 
-    // Shadow / elevation
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
-  },
-  image: {
-    width: '100%',
-    height: 100,
-    borderRadius: 12,
-  },
-  name: {
-    fontFamily: 'Raleway-Bold',
-    fontSize: 14,
-    color: '#fff',
-    marginTop: 8,
-  },
-  address: {
-    fontFamily: 'Raleway-Regular',
-    fontSize: 11,
-    color: '#ccc',
-    marginLeft: 4,
-    flexShrink: 1,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginTop: 6,
-  },
-  priceMain: {
-    fontFamily: 'Rakkas-Regular',
-    color: '#FFD700',
-    fontSize: 20,
-  },
-  priceUnit: {
-    fontFamily: 'Rakkas-Regular',
-    color: '#FFD700',
-    fontSize: 12,
-    marginLeft: 2,
-  },
-});
+const styles = createStyles();
 
 export default ParkingSeeMoreModal;

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Dimensions,
   Platform,
   ScrollView,
   Image,
@@ -26,6 +25,13 @@ import BookingReceiptModal, { BookingInfo } from './booking/BookingReceiptModal'
 import PaymentChoiceModal from '../payments/PaymentChoiceModal';
 import { VehicleProvider } from '../../contexts/vehicles/VehicleContext';
 import VehicleManagementModal from '../../components/VehicleManagementModal';
+import {
+  createResponsiveStyles,
+  scaledFont,
+  scaledSpacing,
+  getIconSize,
+  getCardPadding
+} from '../../utils/responsive';
 
 
 // Local fallback image for parking spaces
@@ -514,154 +520,167 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-    paddingHorizontal: 24,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  profileIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topRightIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12,
-  },
-  // notificationDot removed
-  greetingText: {
-    fontFamily: 'Raleway-Medium',
-    fontSize: 20,
-    color: '#fff',
-  },
-  greetingName: {
-    color: '#FFD700',
-    fontFamily: 'Raleway-Bold',
-  },
-  subtitle: {
-    fontFamily: 'Raleway-Light',
-    fontSize: 18,
-    color: '#ccc',
-    marginTop: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: 'Raleway-Regular',
-    color: '#fff',
-  },
-  categoryItem: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryItemSelected: {
-    backgroundColor: '#FFD700',
-  },
-  categoryLabel: {
-    marginTop: 6,
-    fontFamily: 'Raleway-Regular',
-    color: '#ccc',
-    fontSize: 12,
-  },
-  categoryLabelSelected: {
-    color: '#FFD700',
-    fontFamily: 'Raleway-Bold',
-  },
-  sectionHeader: {
-    fontFamily: 'Raleway-Bold',
-    fontSize: 18,
-    color: '#FFD700',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  spotCard: {
-    flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  spotImage: {
-    width: 110,
-    height: 90,
-  },
-  spotInfo: {
-    flex: 1,
-    padding: 12,
-  },
-  spotName: {
-    fontSize: 18,
-    color: '#fff',
-  },
-  spotNamePrefix: {
-    fontFamily: 'Raleway-SemiBold',
-  },
-  spotNameNumber: {
-    fontFamily: 'Rakkas-Regular',
-  },
-  spotAddress: {
-    fontFamily: 'Raleway-Regular',
-    fontSize: 12,
-    color: '#ccc',
-    marginLeft: 4,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginTop: 4,
-  },
-  priceMain: {
-    fontFamily: 'Rakkas-Regular',
-    color: '#FFD700',
-    fontSize: 26,
-    lineHeight: 30,
-  },
-  priceUnit: {
-    fontFamily: 'Rakkas-Regular',
-    color: '#FFD700',
-    fontSize: 14,
-    marginLeft: 2,
-    marginBottom: 2,
-  },
-  categoriesContainer: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
-});
+const createStyles = () => {
+  const responsive = createResponsiveStyles();
+  const cardPadding = getCardPadding();
+  
+  const profileIconSize = responsive.isSmallScreen ? 48 : responsive.isMediumScreen ? 52 : 56;
+  const iconButtonSize = responsive.isSmallScreen ? 38 : responsive.isMediumScreen ? 42 : 44;
+  const categoryItemSize = responsive.isSmallScreen ? 56 : responsive.isMediumScreen ? 60 : 64;
+  const spotImageWidth = responsive.isSmallScreen ? 90 : responsive.isMediumScreen ? 100 : 110;
+  const spotImageHeight = responsive.isSmallScreen ? 75 : responsive.isMediumScreen ? 82 : 90;
+  
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#000',
+      paddingHorizontal: responsive.padding,
+    },
+    topRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: scaledSpacing(8),
+    },
+    profileIcon: {
+      width: profileIconSize,
+      height: profileIconSize,
+      borderRadius: profileIconSize / 2,
+      borderWidth: 2,
+      borderColor: '#FFD700',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    topRightIcons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    iconButton: {
+      width: iconButtonSize,
+      height: iconButtonSize,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: '#FFD700',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: scaledSpacing(12),
+    },
+    greetingText: {
+      fontFamily: 'Raleway-Medium',
+      fontSize: scaledFont(20),
+      color: '#fff',
+    },
+    greetingName: {
+      color: '#FFD700',
+      fontFamily: 'Raleway-Bold',
+    },
+    subtitle: {
+      fontFamily: 'Raleway-Light',
+      fontSize: scaledFont(18),
+      color: '#ccc',
+      marginTop: 4,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#1a1a1a',
+      borderRadius: 12,
+      paddingHorizontal: cardPadding,
+      paddingVertical: Platform.OS === 'ios' ? scaledSpacing(14) : scaledSpacing(8),
+    },
+    searchInput: {
+      flex: 1,
+      fontFamily: 'Raleway-Regular',
+      color: '#fff',
+      fontSize: scaledFont(16),
+    },
+    categoryItem: {
+      width: categoryItemSize,
+      height: categoryItemSize,
+      borderRadius: 16,
+      borderWidth: 2,
+      borderColor: '#FFD700',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    categoryItemSelected: {
+      backgroundColor: '#FFD700',
+    },
+    categoryLabel: {
+      marginTop: 6,
+      fontFamily: 'Raleway-Regular',
+      color: '#ccc',
+      fontSize: scaledFont(12),
+    },
+    categoryLabelSelected: {
+      color: '#FFD700',
+      fontFamily: 'Raleway-Bold',
+    },
+    sectionHeader: {
+      fontFamily: 'Raleway-Bold',
+      fontSize: scaledFont(18),
+      color: '#FFD700',
+      marginTop: scaledSpacing(16),
+      marginBottom: scaledSpacing(8),
+    },
+    spotCard: {
+      flexDirection: 'row',
+      backgroundColor: '#1a1a1a',
+      borderRadius: 20,
+      overflow: 'hidden',
+      marginBottom: scaledSpacing(16),
+    },
+    spotImage: {
+      width: spotImageWidth,
+      height: spotImageHeight,
+    },
+    spotInfo: {
+      flex: 1,
+      padding: cardPadding,
+    },
+    spotName: {
+      fontSize: scaledFont(18),
+      color: '#fff',
+    },
+    spotNamePrefix: {
+      fontFamily: 'Raleway-SemiBold',
+    },
+    spotNameNumber: {
+      fontFamily: 'Rakkas-Regular',
+    },
+    spotAddress: {
+      fontFamily: 'Raleway-Regular',
+      fontSize: scaledFont(12),
+      color: '#ccc',
+      marginLeft: 4,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      marginTop: 4,
+    },
+    priceMain: {
+      fontFamily: 'Rakkas-Regular',
+      color: '#FFD700',
+      fontSize: scaledFont(26),
+      lineHeight: scaledFont(30),
+    },
+    priceUnit: {
+      fontFamily: 'Rakkas-Regular',
+      color: '#FFD700',
+      fontSize: scaledFont(14),
+      marginLeft: 2,
+      marginBottom: 2,
+    },
+    categoriesContainer: {
+      flexDirection: 'row',
+      paddingVertical: scaledSpacing(12),
+      paddingHorizontal: 4,
+    },
+  });
+};
+
+const styles = createStyles();
 
 // Wrap HomeScreen with VehicleProvider
 const HomeScreenWithVehicles = (props: HomeScreenProps) => (

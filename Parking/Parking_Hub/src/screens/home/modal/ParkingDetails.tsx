@@ -1,9 +1,18 @@
 import React from 'react';
-import { Modal, View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
+import { Modal, View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CalendarPickerModal from '../../../components/CalendarPickerModal';
 import VehiclePickerModal from '../../../components/VehiclePickerModal';
 import { useVehicles } from '../../../contexts/vehicles/VehicleContext';
+import {
+  createResponsiveStyles,
+  scaledFont,
+  scaledSpacing,
+  getModalWidth,
+  getCardPadding,
+  getButtonHeight,
+  SCREEN_WIDTH
+} from '../../../utils/responsive';
 
 interface ParkingSpace {
   id: string;
@@ -207,166 +216,181 @@ const ParkingDetails: React.FC<Props> = ({ visible, onClose, space, onStartBooki
   );
 };
 
-const { width } = Dimensions.get('window');
+const createStyles = () => {
+  const responsive = createResponsiveStyles();
+  const modalWidth = getModalWidth();
+  const cardPadding = getCardPadding();
+  const buttonHeight = getButtonHeight();
+  
+  const closeBtnSize = responsive.isSmallScreen ? 36 : 40;
+  const imageHeight = responsive.isSmallScreen ? SCREEN_WIDTH * 0.4 : SCREEN_WIDTH * 0.5;
+  const mapThumbSize = responsive.isSmallScreen ? 56 : responsive.isMediumScreen ? 62 : 68;
+  
+  return StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    container: {
+      width: modalWidth,
+      backgroundColor: '#1a1a1a',
+      borderRadius: 24,
+      paddingBottom: scaledSpacing(24),
+      alignItems: 'center',
+      maxHeight: '90%',
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    width: width * 0.9,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 24,
-    paddingBottom: 24,
-    alignItems: 'center',
+      // Shadow for iOS
+      shadowColor: '#000',
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      // Elevation for Android
+      elevation: 8,
+    },
+    closeBtn: {
+      position: 'absolute',
+      top: scaledSpacing(12),
+      left: scaledSpacing(12),
+      width: closeBtnSize,
+      height: closeBtnSize,
+      borderRadius: closeBtnSize / 2,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 2,
+    },
+    image: {
+      width: '100%',
+      height: imageHeight,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+    },
+    title: {
+      fontFamily: 'Raleway-Bold',
+      fontSize: scaledFont(20),
+      color: '#fff',
+      marginTop: scaledSpacing(16),
+      textAlign: 'center',
+      paddingHorizontal: responsive.padding,
+    },
+    address: {
+      fontFamily: 'Raleway-Regular',
+      fontSize: scaledFont(13),
+      color: '#ccc',
+      marginLeft: 4,
+    },
+    bookingContainer: {
+      width: '100%',
+      backgroundColor: '#222',
+      borderRadius: 24,
+      padding: cardPadding,
+      marginTop: scaledSpacing(24),
+      marginHorizontal: responsive.padding,
+    },
+    bookingHeadLine: {
+      fontFamily: 'Raleway-Light',
+      fontSize: scaledFont(20),
+      color: '#fff',
+      marginBottom: scaledSpacing(12),
+    },
+    bookingHeadBold: {
+      fontFamily: 'Raleway-Bold',
+      fontSize: scaledFont(28),
+      color: '#fff',
+    },
+    summaryCard: {
+      flexDirection: 'row',
+      backgroundColor: '#333',
+      borderRadius: 18,
+      padding: cardPadding,
+      marginBottom: scaledSpacing(20),
+    },
+    summaryLocation: {
+      fontFamily: 'Raleway-Regular',
+      color: '#ccc',
+      fontSize: scaledFont(12),
+    },
+    summarySpace: {
+      fontFamily: 'Rakkas-Regular',
+      color: '#fff',
+      fontSize: scaledFont(26),
+      marginTop: 4,
+    },
+    timeLabel: {
+      fontFamily: 'Raleway-Regular',
+      color: '#ccc',
+      fontSize: scaledFont(12),
+      marginTop: scaledSpacing(12),
+    },
+    timeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: scaledSpacing(6),
+    },
+    toText: {
+      color: '#fff',
+      fontSize: scaledFont(16),
+      marginHorizontal: scaledSpacing(6),
+    },
+    timeBtn: {
+      backgroundColor: '#333',
+      paddingVertical: scaledSpacing(6),
+      paddingHorizontal: scaledSpacing(12),
+      borderRadius: 8,
+    },
+    timeBtnText: {
+      fontFamily: 'Rakkas-Regular',
+      fontSize: scaledFont(14),
+      color: '#FFD700',
+    },
+    timeValue: { /* deprecated but kept if elsewhere */ },
+    priceColumn: {
+      alignItems: 'flex-end',
+    },
+    priceMain: {
+      fontFamily: 'Rakkas-Regular',
+      fontSize: scaledFont(24),
+      color: '#FFD700',
+    },
+    priceUnit: {
+      fontFamily: 'Raleway-Medium',
+      fontSize: scaledFont(12),
+      color: '#FFD700',
+      marginLeft: 2,
+      marginBottom: 2,
+    },
+    mapThumb: {
+      width: mapThumbSize,
+      height: mapThumbSize,
+      borderRadius: 12,
+      backgroundColor: '#F0F0F0',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    bookBtn: {
+      backgroundColor: '#FFD700',
+      width: '100%',
+      height: buttonHeight,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bookTxt: {
+      fontFamily: 'Raleway-Bold',
+      fontSize: scaledFont(16),
+      color: '#000',
+    },
+    periodText: {
+      fontFamily: 'Raleway-Regular',
+      fontSize: scaledFont(12),
+      color: '#FFD700',
+      marginTop: scaledSpacing(6),
+    },
+  });
+};
 
-    // Shadow for iOS
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    // Elevation for Android
-    elevation: 8,
-  },
-  closeBtn: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  image: {
-    width: '100%',
-    height: width * 0.5,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  title: {
-    fontFamily: 'Raleway-Bold',
-    fontSize: 20,
-    color: '#fff',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  address: {
-    fontFamily: 'Raleway-Regular',
-    fontSize: 13,
-    color: '#ccc',
-    marginLeft: 4,
-  },
-  bookingContainer: {
-    width: '100%',
-    backgroundColor: '#222',
-    borderRadius: 24,
-    padding: 20,
-    marginTop: 24,
-  },
-  bookingHeadLine: {
-    fontFamily: 'Raleway-Light',
-    fontSize: 20,
-    color: '#fff',
-    marginBottom: 12,
-  },
-  bookingHeadBold: {
-    fontFamily: 'Raleway-Bold',
-    fontSize: 28,
-    color: '#fff',
-  },
-  summaryCard: {
-    flexDirection: 'row',
-    backgroundColor: '#333',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 20,
-  },
-  summaryLocation: {
-    fontFamily: 'Raleway-Regular',
-    color: '#ccc',
-    fontSize: 12,
-  },
-  summarySpace: {
-    fontFamily: 'Rakkas-Regular',
-    color: '#fff',
-    fontSize: 26,
-    marginTop: 4,
-  },
-  timeLabel: {
-    fontFamily: 'Raleway-Regular',
-    color: '#ccc',
-    fontSize: 12,
-    marginTop: 12,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  toText: {
-    color: '#fff',
-    fontSize: 16,
-    marginHorizontal: 6,
-  },
-  timeBtn: {
-    backgroundColor: '#333',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  timeBtnText: {
-    fontFamily: 'Rakkas-Regular',
-    fontSize: 14,
-    color: '#FFD700',
-  },
-  timeValue: { /* deprecated but kept if elsewhere */ },
-  priceColumn: {
-    alignItems: 'flex-end',
-  },
-  priceMain: {
-    fontFamily: 'Rakkas-Regular',
-    fontSize: 24,
-    color: '#FFD700',
-  },
-  priceUnit: {
-    fontFamily: 'Raleway-Medium',
-    fontSize: 12,
-    color: '#FFD700',
-    marginLeft: 2,
-    marginBottom: 2,
-  },
-  mapThumb: {
-    width: 68,
-    height: 68,
-    borderRadius: 12,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bookBtn: {
-    backgroundColor: '#FFD700',
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  bookTxt: {
-    fontFamily: 'Raleway-Bold',
-    fontSize: 16,
-    color: '#000',
-  },
-  periodText: {
-    fontFamily: 'Raleway-Regular',
-    fontSize: 12,
-    color: '#FFD700',
-    marginTop: 6,
-  },
-});
+const styles = createStyles();
 
 export default ParkingDetails;
