@@ -12,6 +12,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true, // Enable session persistence to maintain login state
     autoRefreshToken: true,
+    storage: window.localStorage, // Explicitly use localStorage for session storage
+    storageKey: 'parking-hub-auth', // Custom storage key
+    detectSessionInUrl: true,
   },
   global: {
     headers: {
@@ -19,6 +22,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'Content-Type': 'application/json',
       'X-Client-Info': 'supabase-js-web',
       'Accept': 'application/json',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
     },
   },
 });

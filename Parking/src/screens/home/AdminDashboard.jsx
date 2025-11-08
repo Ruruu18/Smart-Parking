@@ -31,6 +31,16 @@ const sameActivities = (a = [], b = []) => {
   return true;
 };
 
+// Helper function to add timeout to fetch operations
+const withTimeout = (promise, timeoutMs = 8000, operationName = 'Operation') => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${operationName} timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+};
+
 const AdminDashboard = ({ onLogout }) => {
   const { user, userProfile } = useAuth();
   const lastActivityFetchRef = useRef(0);
@@ -222,10 +232,12 @@ const AdminDashboard = ({ onLogout }) => {
   // Fetch parking spaces from Supabase
   const fetchParkingSpaces = async () => {
     try {
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from("parking_spaces")
         .select("*")
         .order("created_at", { ascending: false });
+
+      const { data, error } = await withTimeout(fetchPromise, 8000, 'Fetch parking spaces');
 
       if (error) throw error;
 
@@ -250,6 +262,10 @@ const AdminDashboard = ({ onLogout }) => {
       }
     } catch (error) {
       console.error("Error fetching parking spaces:", error);
+      // Set empty state on error to prevent infinite loading
+      if (parkingSpaces.length === 0) {
+        setParkingSpaces([]);
+      }
     }
   };
 
@@ -277,12 +293,14 @@ const AdminDashboard = ({ onLogout }) => {
         999,
       );
 
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from("payments")
         .select("amount, status, created_at")
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString())
         .in("status", ["completed", "pending"]);
+
+      const { data, error } = await withTimeout(fetchPromise, 8000, 'Fetch today revenue');
 
       if (error) throw error;
 
@@ -296,16 +314,20 @@ const AdminDashboard = ({ onLogout }) => {
       );
     } catch (e) {
       console.error("Error fetching daily revenue:", e);
+      // Set to 0 on error to prevent showing stale data
+      setStats((s) => ({ ...s, dailyRevenue: 0 }));
     }
   };
 
   // Sum of all completed payments (all-time)
   const fetchTotalEarnings = async () => {
     try {
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from("payments")
         .select("amount, status")
         .eq("status", "completed");
+
+      const { data, error } = await withTimeout(fetchPromise, 8000, 'Fetch total earnings');
 
       if (error) throw error;
 
@@ -319,6 +341,7 @@ const AdminDashboard = ({ onLogout }) => {
       );
     } catch (e) {
       console.error("Error fetching total earnings:", e);
+      // Keep previous value on error
     }
   };
 
@@ -333,34 +356,47 @@ const AdminDashboard = ({ onLogout }) => {
       return;
     }
     isFetchingActivityRef.current = true;
+
+    // Add timeout to reset fetching flag if operation hangs
+    const resetTimeout = setTimeout(() => {
+      if (isFetchingActivityRef.current) {
+        console.warn('fetchRecentActivity timed out, resetting flag');
+        isFetchingActivityRef.current = false;
+      }
+    }, 12000); // 12 second timeout for all operations
+
     // Prevent fetching if user is not logged in or not admin
     if (!user || !userProfile || userProfile.role !== "admin") {
       setRecentActivity([]);
       setAllActivities([]);
+      clearTimeout(resetTimeout);
+      isFetchingActivityRef.current = false;
       return;
     }
 
     try {
       // Fetch recent USER activities from new table (bookings/parking/views etc.)
-      const { data: userActivitiesRows, error: userActivitiesError } =
-        await supabase
-          .from("user_activities")
-          .select(
-            `
+      const userActivitiesPromise = supabase
+        .from("user_activities")
+        .select(
+          `
           id,
           type,
           action,
           details,
           created_at
         `,
-          )
-          .order("created_at", { ascending: false })
-          .limit(25);
+        )
+        .order("created_at", { ascending: false })
+        .limit(25);
+
+      const { data: userActivitiesRows, error: userActivitiesError } =
+        await withTimeout(userActivitiesPromise, 8000, 'Fetch user activities');
 
       if (userActivitiesError) throw userActivitiesError;
 
       // Fetch recent payments - show ALL recent payments
-      const { data: payments, error: paymentsError } = await supabase
+      const paymentsPromise = supabase
         .from("payments")
         .select(
           `
@@ -373,6 +409,9 @@ const AdminDashboard = ({ onLogout }) => {
         )
         .order("created_at", { ascending: false })
         .limit(10);
+
+      const { data: payments, error: paymentsError } =
+        await withTimeout(paymentsPromise, 8000, 'Fetch payments');
 
       if (paymentsError) throw paymentsError;
 
@@ -546,7 +585,11 @@ const AdminDashboard = ({ onLogout }) => {
       lastActivityFetchRef.current = Date.now();
     } catch (error) {
       console.error("Error fetching recent activity:", error);
+      // Set empty arrays on error to prevent infinite loading
+      setRecentActivity([]);
+      setAllActivities([]);
     } finally {
+      clearTimeout(resetTimeout);
       isFetchingActivityRef.current = false;
     }
   };
