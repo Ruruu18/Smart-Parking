@@ -48,7 +48,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const [showVehicleModal, setShowVehicleModal] = useState(false);
 
   const [greeting, setGreeting] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('car');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [parkingSpots, setParkingSpots] = useState<any[]>([]);
   const [loadingSpots, setLoadingSpots] = useState<boolean>(true);
   const [showAllModal, setShowAllModal] = useState(false);
@@ -219,6 +219,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   // All categories are always visible
   const vehicleCategories = React.useMemo(() => (
     [
+      { key: 'all', label: 'All', icon: 'grid-outline' as const },
       { key: 'car', label: 'Car', icon: 'car-sport-outline' as const },
       { key: 'truck', label: 'Truck', icon: 'car-outline' as const },
       { key: 'van', label: 'Van', icon: 'bus-outline' as const },
@@ -255,10 +256,11 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
           s.category?.toLowerCase().includes(q) ||
           (s.address ?? s.section)?.toLowerCase().includes(q)
       );
-    } else if (selectedCategory) {
-      // Apply category filter only when no search query
+    } else if (selectedCategory && selectedCategory !== 'all') {
+      // Apply category filter only when no search query AND not "All" selected
       list = list.filter((s) => (s.category?.toLowerCase() ?? 'other') === selectedCategory);
     }
+    // If selectedCategory is 'all', show all parking spots (no filtering)
 
     // Sort alphabetically by space_number for consistency
     return [...list].sort((a, b) => (a.space_number > b.space_number ? 1 : -1));
@@ -471,7 +473,10 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
         {!loadingSpots && filteredSpots.length > 3 && (
           <TouchableOpacity onPress={() => setShowAllModal(true)} style={{ alignSelf: 'center', marginTop: 8 }}>
             <Text style={{ color:'#FFD700', fontFamily:'Raleway-Medium' }}>
-              {`See more ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}`}
+              {selectedCategory === 'all'
+                ? 'See more Spaces'
+                : `See more ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}`
+              }
             </Text>
           </TouchableOpacity>
         )}
