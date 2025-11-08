@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Linking } from 'react-native';
 import * as ExpoLinking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
+import { differenceInCalendarDays } from 'date-fns';
 import { BookingInfo } from '../home/booking/BookingReceiptModal';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../contexts/auth/AuthContext';
@@ -23,8 +24,16 @@ const PaymentChoiceModal: React.FC<PaymentChoiceModalProps> = ({ visible, bookin
     const dailyRate = Number(booking.space?.daily_rate ?? 0);
     const start = booking.startTime instanceof Date ? booking.startTime : new Date(booking.startTime);
     const end = booking.endTime instanceof Date ? booking.endTime : new Date(booking.endTime);
-    const ms = Math.max(0, end.getTime() - start.getTime());
-    const days = Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+
+    // Calculate actual calendar days difference (Nov 9 to Nov 16 = 7 days)
+    const days = differenceInCalendarDays(end, start);
+
+    // Validate: Must have at least 1 day booking (prevent same-day bookings)
+    if (days < 1) {
+      console.warn('Invalid booking: Same-day or negative duration detected');
+      return { amountDue: 0, daysBooked: 0 };
+    }
+
     return { amountDue: Math.round(dailyRate * days), daysBooked: days };
   }, [booking]);
 
@@ -42,7 +51,13 @@ const PaymentChoiceModal: React.FC<PaymentChoiceModalProps> = ({ visible, bookin
       Alert.alert('Error', 'You must be logged in to make a payment.');
       return;
     }
-    
+
+    // Validate booking duration
+    if (daysBooked < 1) {
+      Alert.alert('Invalid Booking', 'End date must be at least 1 day after start date. Please go back and select a valid date range.');
+      return;
+    }
+
     try {
       setSubmitting(method);
       

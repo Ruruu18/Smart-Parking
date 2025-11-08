@@ -269,7 +269,8 @@ export default function BookingsReport() {
                 const endTs = new Date(session.end_time).getTime();
                 if (!isNaN(startTs) && !isNaN(endTs) && endTs > startTs) {
                   const oneDay = 24 * 60 * 60 * 1000;
-                  const calc = Math.max(1, Math.ceil((endTs - startTs) / oneDay));
+                  // Fixed: Use Math.floor to calculate actual calendar days (Nov 9 to Nov 16 = 7 days, not 8)
+                  const calc = Math.floor((endTs - startTs) / oneDay);
                   if (!days) days = calc;
                 }
               } catch {}

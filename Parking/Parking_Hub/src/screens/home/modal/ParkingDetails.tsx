@@ -72,6 +72,11 @@ const ParkingDetails: React.FC<Props> = ({ visible, onClose, space, onStartBooki
         Alert.alert('Invalid End Date', 'End date cannot be before start date.');
         return;
       }
+      // Prevent same-day bookings (end date must be at least 1 day after start date)
+      if (picked.getTime() === startDay.getTime()) {
+        Alert.alert('Invalid End Date', 'End date must be at least 1 day after start date. Please select a different date.');
+        return;
+      }
       setEndTime(picked);
     }
     setPickerMode(null);
