@@ -18,28 +18,10 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
       setLoading(true);
       setError('');
 
-      // Fetch active session for this space
-      const { data: sessionData, error: sessionError } = await supabase
+      // First, fetch the active session for this space
+      const { data: session, error: sessionError } = await supabase
         .from('parking_sessions')
-        .select(`
-          *,
-          profiles!user_id (
-            name,
-            email
-          ),
-          vehicles!vehicle_id (
-            plate,
-            make,
-            model,
-            color
-          ),
-          parking_spaces!space_id (
-            space_number,
-            section,
-            address,
-            daily_rate
-          )
-        `)
+        .select('*')
         .eq('space_id', spaceId)
         .eq('status', 'checked_in')
         .order('start_time', { ascending: false })
@@ -55,7 +37,53 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
         return;
       }
 
-      setSessionDetails(sessionData);
+      if (!session) {
+        setError('No active session found for this space.');
+        return;
+      }
+
+      // Fetch user profile
+      let userProfile = null;
+      if (session.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', session.user_id)
+          .single();
+        userProfile = profile;
+      }
+
+      // Fetch vehicle details
+      let vehicle = null;
+      if (session.vehicle_id) {
+        const { data: vehicleData } = await supabase
+          .from('vehicles')
+          .select('plate, make, model, color')
+          .eq('id', session.vehicle_id)
+          .single();
+        vehicle = vehicleData;
+      }
+
+      // Fetch parking space details
+      let parkingSpace = null;
+      if (session.space_id) {
+        const { data: spaceData } = await supabase
+          .from('parking_spaces')
+          .select('space_number, section, address, daily_rate')
+          .eq('id', session.space_id)
+          .single();
+        parkingSpace = spaceData;
+      }
+
+      // Combine all data
+      const combinedData = {
+        ...session,
+        profiles: userProfile,
+        vehicles: vehicle,
+        parking_spaces: parkingSpace
+      };
+
+      setSessionDetails(combinedData);
     } catch (err) {
       console.error('Error fetching session details:', err);
       setError('Failed to load session details. Please try again.');
