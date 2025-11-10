@@ -130,7 +130,17 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
 
       if (rpcError) throw rpcError;
 
-      // DELETE the parking space entirely
+      // Set space_id to NULL in the session to preserve history before deleting space
+      const { error: updateError } = await supabase
+        .from('parking_sessions')
+        .update({ space_id: null })
+        .eq('id', sessionDetails.id);
+
+      if (updateError) {
+        console.warn('Failed to unlink space from session:', updateError);
+      }
+
+      // DELETE the parking space entirely (history is preserved)
       const { error: deleteError } = await supabase
         .from('parking_spaces')
         .delete()

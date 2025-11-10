@@ -422,7 +422,19 @@ const VehicleScanner = ({ visible, onClose, onScan }) => {
                           console.warn('Failed to set session end time:', e);
                         }
 
-                        // DELETE the parking space after checkout
+                        // Set space_id to NULL to preserve booking history before deleting space
+                        if (sessionId) {
+                          try {
+                            await supabase
+                              .from('parking_sessions')
+                              .update({ space_id: null })
+                              .eq('id', sessionId);
+                          } catch (e) {
+                            console.warn('Failed to unlink space from session:', e);
+                          }
+                        }
+
+                        // DELETE the parking space after checkout (history is preserved)
                         if (sessionDetails?.spaceId) {
                           try {
                             const { error: deleteError } = await supabase
