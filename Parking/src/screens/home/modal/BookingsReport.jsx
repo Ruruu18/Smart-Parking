@@ -445,10 +445,6 @@ export default function BookingsReport() {
           <div className="text-blue-300/80">Total Bookings</div>
           <div className="text-2xl font-semibold">{stats.total}</div>
         </div>
-        <div className="rounded px-4 py-3 text-sm border bg-emerald-900/30 border-emerald-700/40 text-emerald-100">
-          <div className="text-emerald-300/80">Total Rent</div>
-          <div className="text-2xl font-semibold">₱{Number(stats.revenue).toFixed(2)}</div>
-        </div>
       </div>
 
       <FiltersBar
