@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Use Expo build-time env vars (prefix EXPO_PUBLIC_) so they get embedded.
 // Make sure these two are defined in your .env or app config.
@@ -13,6 +14,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    storage: AsyncStorage,
+    detectSessionInUrl: false, // Not needed for React Native
   },
 });
 
