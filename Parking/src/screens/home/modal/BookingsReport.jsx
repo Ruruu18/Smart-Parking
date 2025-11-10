@@ -412,16 +412,26 @@ export default function BookingsReport() {
     const booked = { booked: 0, refund: 0, other: 0 };
     filtered.forEach((r) => {
       const d = parseDetails(r.details);
-      const amt = Number((d.total_amount ?? d.space_rent ?? 0) || 0);
-      revenue += isNaN(amt) ? 0 : amt;
-      // Try to infer booking days if present; fallback to 1 per record
-      const days = Number(d.days ?? d.booking_days ?? d.day_count ?? 1);
-      totalDays += isNaN(days) ? 1 : Math.max(0, days);
+      const st = (d.status || (r.action || '')).toLowerCase();
+
+      // Only count revenue from paid bookings (completed or checked_in)
+      // Exclude "booked" status since they haven't paid yet
+      const isPaid = st.includes('completed') || st.includes('checked in') || st.includes('check in') || st.includes('checked_in');
+      const isBooked = st.includes('book') && !isPaid;
+
+      if (isPaid) {
+        const amt = Number((d.total_amount ?? d.space_rent ?? 0) || 0);
+        revenue += isNaN(amt) ? 0 : amt;
+        // Try to infer booking days if present; fallback to 1 per record
+        const days = Number(d.days ?? d.booking_days ?? d.day_count ?? 1);
+        totalDays += isNaN(days) ? 1 : Math.max(0, days);
+      }
+
       const plate = d.vehicle_plate_number || d.plate;
       if (plate) plates.add(plate);
-      const st = (d.status || (r.action || '')).toLowerCase();
+
       if (st.includes('refund')) booked.refund += 1;
-      else if (st.includes('book')) booked.booked += 1;
+      else if (isBooked) booked.booked += 1;
       else booked.other += 1;
     });
     return { total, revenue, totalDays, uniquePlates: plates.size, booked };
