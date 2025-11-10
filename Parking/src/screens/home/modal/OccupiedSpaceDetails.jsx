@@ -23,17 +23,17 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
         .from('parking_sessions')
         .select(`
           *,
-          profiles!parking_sessions_user_id_fkey (
+          profiles!user_id (
             name,
             email
           ),
-          vehicles!parking_sessions_vehicle_id_fkey (
+          vehicles!vehicle_id (
             plate,
             make,
             model,
             color
           ),
-          parking_spaces!parking_sessions_space_id_fkey (
+          parking_spaces!space_id (
             space_number,
             section,
             address,
