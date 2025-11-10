@@ -1,7 +1,13 @@
 import React from 'react';
 
-const TotalSpace = ({ visible, onClose, parkingSpaces }) => {
+const TotalSpace = ({ visible, onClose, parkingSpaces, onOccupiedSpaceClick }) => {
   if (!visible) return null; // nothing when hidden
+
+  const handleSpaceClick = (space) => {
+    if (space.is_occupied && onOccupiedSpaceClick) {
+      onOccupiedSpaceClick(space);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -14,10 +20,12 @@ const TotalSpace = ({ visible, onClose, parkingSpaces }) => {
           {parkingSpaces.map(space => (
             <li
               key={space.id}
-              className={`flex items-center justify-between rounded-md px-4 py-2
+              onClick={() => handleSpaceClick(space)}
+              className={`flex items-center justify-between rounded-md px-4 py-2 transition-colors
                 ${space.is_occupied
-                  ? 'bg-red-600/20 text-red-300'
+                  ? 'bg-red-600/20 text-red-300 cursor-pointer hover:bg-red-600/30'
                   : 'bg-green-600/20 text-green-300'}`}
+              title={space.is_occupied ? 'Click to view details and check out' : ''}
             >
               <span className="font-semibold">{space.space_number}</span>
               <span>{space.is_occupied ? 'Occupied' : 'Available'}</span>

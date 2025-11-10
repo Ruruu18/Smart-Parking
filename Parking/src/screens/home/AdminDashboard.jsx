@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
 import wheelLogo from "../../assets/images/icons/wheel.png";
 import TotalSpace from "./modal/TotalSpace";
+import OccupiedSpaceDetails from "./modal/OccupiedSpaceDetails";
 import AddNewParking from "./quickActions/AddNewParking";
 import VehicleScanner from "./quickActions/VehicleScanner";
 import { redirectToCheckout } from "../../lib/paymongo";
@@ -122,6 +123,10 @@ const AdminDashboard = ({ onLogout }) => {
 
   // State for Vehicle Management Modal
   const [showVehicleManagement, setShowVehicleManagement] = useState(false);
+
+  // State for Occupied Space Details Modal
+  const [showOccupiedDetails, setShowOccupiedDetails] = useState(false);
+  const [selectedOccupiedSpace, setSelectedOccupiedSpace] = useState(null);
 
   // Helper function to safely parse JSON
   const tryParseJSON = (jsonString) => {
@@ -2652,6 +2657,26 @@ const AdminDashboard = ({ onLogout }) => {
         visible={showTotalSpace}
         onClose={() => setShowTotalSpace(false)}
         parkingSpaces={parkingSpaces}
+        onOccupiedSpaceClick={(space) => {
+          setSelectedOccupiedSpace(space);
+          setShowOccupiedDetails(true);
+        }}
+      />
+
+      {/* Occupied Space Details Modal */}
+      <OccupiedSpaceDetails
+        visible={showOccupiedDetails}
+        onClose={() => {
+          setShowOccupiedDetails(false);
+          setSelectedOccupiedSpace(null);
+        }}
+        spaceId={selectedOccupiedSpace?.id}
+        onCheckoutSuccess={() => {
+          // Refresh parking spaces after successful checkout
+          fetchParkingSpaces();
+          setShowOccupiedDetails(false);
+          setSelectedOccupiedSpace(null);
+        }}
       />
 
       {/* Manage Users Modal */}
