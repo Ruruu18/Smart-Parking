@@ -108,8 +108,10 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
   const handleCheckOut = async () => {
     if (!sessionDetails) return;
 
+    const spaceName = sessionDetails.parking_spaces?.space_number || 'this space';
+
     const confirmCheckout = window.confirm(
-      `Check out ${sessionDetails.profiles?.name || 'this vehicle'}?\n\nThis will end their parking session immediately.`
+      `Check out ${sessionDetails.profiles?.name || 'this vehicle'} and DELETE parking space ${spaceName}?\n\n⚠️ WARNING: This will:\n1. End the parking session\n2. PERMANENTLY DELETE the parking space\n\nThis action cannot be undone!`
     );
 
     if (!confirmCheckout) return;
@@ -128,15 +130,15 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
 
       if (rpcError) throw rpcError;
 
-      // Update parking space to available
-      const { error: spaceError } = await supabase
+      // DELETE the parking space entirely
+      const { error: deleteError } = await supabase
         .from('parking_spaces')
-        .update({ is_occupied: false })
+        .delete()
         .eq('id', spaceId);
 
-      if (spaceError) throw spaceError;
+      if (deleteError) throw deleteError;
 
-      alert('✅ Vehicle checked out successfully!');
+      alert('✅ Vehicle checked out and parking space deleted successfully!');
 
       // Call success callback to refresh parking spaces
       if (onCheckoutSuccess) {
@@ -145,8 +147,8 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
 
       onClose();
     } catch (err) {
-      console.error('Error checking out:', err);
-      setError('Failed to check out vehicle. Please try again.');
+      console.error('Error checking out and deleting space:', err);
+      setError('Failed to check out vehicle and delete space. Please try again.');
     } finally {
       setCheckingOut(false);
     }
@@ -403,7 +405,7 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
             <button
               onClick={handleCheckOut}
               disabled={checkingOut}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {checkingOut ? (
                 <>
@@ -411,11 +413,11 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Checking Out...
+                  Processing...
                 </>
               ) : (
                 <>
-                  ↩️ Check Out Now
+                  🗑️ Check Out & Delete Space
                 </>
               )}
             </button>
