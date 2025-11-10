@@ -97,6 +97,23 @@ const PaymentChoiceModal: React.FC<PaymentChoiceModalProps> = ({ visible, bookin
               processedRef.current = true;
               console.log('[Payments] Deep link received', url);
 
+              // Check if payment already exists (idempotency)
+              const { data: existing } = await supabase
+                .from('payments')
+                .select('id')
+                .eq('session_id', booking.sessionId)
+                .eq('payment_method', 'gcash')
+                .eq('status', 'completed')
+                .maybeSingle();
+
+              if (existing) {
+                console.log('[Payments] Payment already recorded, skipping insert');
+                onPaid(existing);
+                Alert.alert('Payment Success', 'GCash payment recorded.');
+                cleanup(sub);
+                return;
+              }
+
               const { data, error } = await supabase
                 .from('payments')
                 .insert([
@@ -111,13 +128,17 @@ const PaymentChoiceModal: React.FC<PaymentChoiceModalProps> = ({ visible, bookin
                 .select()
                 .single();
 
-              if (error) throw error;
+              if (error) {
+                console.error('Payment insert error:', error);
+                throw error;
+              }
               onPaid(data);
               Alert.alert('Payment Success', 'GCash payment recorded.');
               cleanup(sub);
             } catch (e: any) {
               console.error('Post-payment handling failed:', e);
-              Alert.alert('Payment Notice', 'Payment completed but failed to record. Please refresh.');
+              const msg = e?.message || e?.error_description || 'Unknown error';
+              Alert.alert('Payment Notice', `Payment completed but failed to record: ${msg}\n\nPlease contact support.`);
             }
           };
 

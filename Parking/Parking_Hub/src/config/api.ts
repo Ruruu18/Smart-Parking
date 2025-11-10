@@ -20,8 +20,8 @@ const makeUrl = (host: string) => `http://${host}:${DEV_API_PORT}`;
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 const devHost: string =
-  // @ts-ignore – Expo injects this variable when using "expo start --dev-client" or in the browser debugger
-  (process.env.DEV_API_HOST as string) || 'localhost';
+  // @ts-ignore – Expo injects EXPO_PUBLIC_ prefixed variables
+  (process.env.EXPO_PUBLIC_DEV_API_HOST as string) || 'localhost';
 
 let BASE_URL: string;
 
