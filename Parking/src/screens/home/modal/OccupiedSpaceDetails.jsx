@@ -392,7 +392,7 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
 
         {/* Footer Actions */}
         {!loading && !error && sessionDetails && (
-          <div className="border-t border-gray-700 px-6 py-4 flex justify-end space-x-3">
+          <div className="border-t border-gray-700 px-6 py-4 flex justify-between items-center">
             <button
               onClick={onClose}
               disabled={checkingOut}
