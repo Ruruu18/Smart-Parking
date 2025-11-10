@@ -421,6 +421,22 @@ const VehicleScanner = ({ visible, onClose, onScan }) => {
                         } catch (e) {
                           console.warn('Failed to set session end time:', e);
                         }
+
+                        // DELETE the parking space after checkout
+                        if (sessionDetails?.spaceId) {
+                          try {
+                            const { error: deleteError } = await supabase
+                              .from('parking_spaces')
+                              .delete()
+                              .eq('id', sessionDetails.spaceId);
+
+                            if (deleteError) {
+                              console.error('Failed to delete parking space:', deleteError);
+                            }
+                          } catch (e) {
+                            console.warn('Failed to delete parking space:', e);
+                          }
+                        }
                       }
                     }
                   } finally {
