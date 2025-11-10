@@ -18,8 +18,8 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
       setLoading(true);
       setError('');
 
-      // First, fetch the active session for this space
-      const { data: session, error: sessionError } = await supabase
+      // First, try to fetch active checked-in session
+      let { data: session, error: sessionError } = await supabase
         .from('parking_sessions')
         .select('*')
         .eq('space_id', spaceId)
@@ -28,17 +28,30 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
         .limit(1)
         .single();
 
-      if (sessionError) {
-        if (sessionError.code === 'PGRST116') {
-          setError('No active session found for this space.');
+      // If no checked-in session found, try to find the most recent session (any status)
+      if (sessionError && sessionError.code === 'PGRST116') {
+        const { data: anySession, error: anyError } = await supabase
+          .from('parking_sessions')
+          .select('*')
+          .eq('space_id', spaceId)
+          .order('start_time', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (!anyError && anySession) {
+          session = anySession;
+          // Mark this as a stale/inconsistent session
+          session._isInconsistent = true;
         } else {
-          throw sessionError;
+          setError('no_session_found');
+          return;
         }
-        return;
+      } else if (sessionError) {
+        throw sessionError;
       }
 
       if (!session) {
-        setError('No active session found for this space.');
+        setError('no_session_found');
         return;
       }
 
@@ -139,6 +152,40 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
     }
   };
 
+  const handleFixInconsistency = async () => {
+    const confirmFix = window.confirm(
+      'This parking space is marked as occupied but has no active session.\n\nMark this space as available?'
+    );
+
+    if (!confirmFix) return;
+
+    try {
+      setCheckingOut(true);
+
+      // Update parking space to available
+      const { error: spaceError } = await supabase
+        .from('parking_spaces')
+        .update({ is_occupied: false })
+        .eq('id', spaceId);
+
+      if (spaceError) throw spaceError;
+
+      alert('✅ Parking space marked as available!');
+
+      // Call success callback to refresh parking spaces
+      if (onCheckoutSuccess) {
+        onCheckoutSuccess();
+      }
+
+      onClose();
+    } catch (err) {
+      console.error('Error fixing inconsistency:', err);
+      alert('❌ Failed to update parking space. Please try again.');
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
   const formatDateTime = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -205,13 +252,58 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-red-400 mb-4">{error}</p>
-              <button
-                onClick={fetchSessionDetails}
-                className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600"
-              >
-                Try Again
-              </button>
+              {error === 'no_session_found' ? (
+                <>
+                  <div className="mb-4">
+                    <svg className="h-16 w-16 text-yellow-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p className="text-yellow-400 font-semibold mb-2">Data Inconsistency Detected</p>
+                    <p className="text-gray-300 text-sm mb-4">
+                      This space is marked as occupied, but no active parking session was found.
+                    </p>
+                    <p className="text-gray-400 text-xs">
+                      This can happen if a session was completed but the space status wasn't updated.
+                    </p>
+                  </div>
+                  <div className="flex justify-center gap-3">
+                    <button
+                      onClick={fetchSessionDetails}
+                      disabled={checkingOut}
+                      className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 disabled:opacity-50"
+                    >
+                      Try Again
+                    </button>
+                    <button
+                      onClick={handleFixInconsistency}
+                      disabled={checkingOut}
+                      className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 font-medium disabled:opacity-50 flex items-center"
+                    >
+                      {checkingOut ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Fixing...
+                        </>
+                      ) : (
+                        '🔧 Mark as Available'
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-red-400 mb-4">{error}</p>
+                  <button
+                    onClick={fetchSessionDetails}
+                    className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600"
+                  >
+                    Try Again
+                  </button>
+                </>
+              )}
             </div>
           ) : sessionDetails ? (
             <div className="space-y-4">
