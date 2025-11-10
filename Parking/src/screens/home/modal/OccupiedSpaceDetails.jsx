@@ -417,7 +417,7 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
                 </>
               ) : (
                 <>
-                  🗑️ Check Out & Delete Space
+                  🗑️ Check Out Space
                 </>
               )}
             </button>
