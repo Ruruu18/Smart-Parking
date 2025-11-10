@@ -13,6 +13,7 @@ import {
   StatusBar,
   ActivityIndicator,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,6 +65,11 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
   const [paymentChoiceVisible, setPaymentChoiceVisible] = useState(false);
   const [paymentBooking, setPaymentBooking] = useState<BookingInfo | null>(null);
+
+  // Confirmation modal state for real-time updates
+  const [confirmationVisible, setConfirmationVisible] = useState(false);
+  const [confirmationType, setConfirmationType] = useState<'checkin' | 'checkout' | 'payment'>('checkin');
+  const [previousSessionStatus, setPreviousSessionStatus] = useState<string | null>(null);
 
   const openDetail = (space: any) => {
     setSelectedSpace(space);
@@ -191,15 +197,53 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
           table: 'parking_sessions',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
+        (payload) => {
+          const newStatus = payload.new?.status;
+          const oldStatus = payload.old?.status;
+
+          // Detect status changes and show confirmation
+          if (oldStatus !== newStatus) {
+            if (newStatus === 'checked_in' && oldStatus === 'booked') {
+              setConfirmationType('checkin');
+              setConfirmationVisible(true);
+            } else if (newStatus === 'completed' && oldStatus === 'checked_in') {
+              setConfirmationType('checkout');
+              setConfirmationVisible(true);
+            }
+          }
+
           // Re-fetch on any update (e.g., status changed)
           fetchActiveBooking();
         }
       )
       .subscribe();
 
+    // Subscribe to payment updates for this user's sessions
+    const paymentChannel = supabase
+      .channel(`public:payments_user_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'payments',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const paymentStatus = payload.new?.status;
+
+          // Show payment success confirmation
+          if (paymentStatus === 'completed') {
+            setConfirmationType('payment');
+            setConfirmationVisible(true);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(sessionChannel);
+      supabase.removeChannel(paymentChannel);
     };
   }, [user?.id]);
 
@@ -521,6 +565,41 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
       <BookingReceiptModal visible={bookingModalVisible} onClose={() => setBookingModalVisible(false)} booking={bookingInfo} />
       {/* GCash Test Modal */}
 
+      {/* Real-time Confirmation Modal */}
+      <Modal visible={confirmationVisible} transparent animationType="fade">
+        <View style={styles.confirmationOverlay}>
+          <View style={styles.confirmationCard}>
+            <View style={styles.confirmationIconContainer}>
+              <Ionicons
+                name={
+                  confirmationType === 'checkin' ? 'checkmark-circle' :
+                  confirmationType === 'checkout' ? 'exit' :
+                  'card'
+                }
+                size={80}
+                color="#4CAF50"
+              />
+            </View>
+            <Text style={styles.confirmationTitle}>
+              {confirmationType === 'checkin' && 'Check-In Successful!'}
+              {confirmationType === 'checkout' && 'Check-Out Complete!'}
+              {confirmationType === 'payment' && 'Payment Successful!'}
+            </Text>
+            <Text style={styles.confirmationMessage}>
+              {confirmationType === 'checkin' && 'Your vehicle has been checked in. Enjoy your parking!'}
+              {confirmationType === 'checkout' && 'Thank you for using our parking service.'}
+              {confirmationType === 'payment' && 'Your payment has been processed successfully.'}
+            </Text>
+            <TouchableOpacity
+              style={styles.confirmationButton}
+              onPress={() => setConfirmationVisible(false)}
+            >
+              <Text style={styles.confirmationButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -681,6 +760,53 @@ const createStyles = () => {
       flexDirection: 'row',
       paddingVertical: scaledSpacing(12),
       paddingHorizontal: 4,
+    },
+    confirmationOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    confirmationCard: {
+      backgroundColor: '#1E1E1E',
+      borderRadius: 20,
+      padding: 30,
+      width: '90%',
+      maxWidth: 400,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: '#4CAF50',
+    },
+    confirmationIconContainer: {
+      marginBottom: 20,
+    },
+    confirmationTitle: {
+      fontSize: scaledFont(24),
+      fontWeight: 'bold',
+      color: '#4CAF50',
+      marginBottom: 10,
+      textAlign: 'center',
+    },
+    confirmationMessage: {
+      fontSize: scaledFont(16),
+      color: '#FFFFFF',
+      textAlign: 'center',
+      marginBottom: 25,
+      lineHeight: scaledFont(22),
+    },
+    confirmationButton: {
+      backgroundColor: '#4CAF50',
+      paddingHorizontal: 40,
+      paddingVertical: 12,
+      borderRadius: 25,
+      minWidth: 120,
+    },
+    confirmationButtonText: {
+      color: '#FFFFFF',
+      fontSize: scaledFont(16),
+      fontWeight: 'bold',
+      textAlign: 'center',
     },
   });
 };
