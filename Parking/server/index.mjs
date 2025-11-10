@@ -30,7 +30,12 @@ console.log('[Env] SUPABASE_URL:', SUPABASE_URL ? 'set' : 'missing', '| SERVICE_
 
 // Supabase admin client (for server-side writes)
 const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        persistSession: false, // No session persistence needed on backend
+        autoRefreshToken: false,
+      },
+    })
   : null;
 
 app.use(cors({ origin: true }));
