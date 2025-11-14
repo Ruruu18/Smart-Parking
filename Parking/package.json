@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "echo 'Skipping frontend build for Railway'",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node server/index.mjs",
