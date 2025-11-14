@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
   StatusBar,
   ActivityIndicator,
   RefreshControl,
-  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,10 +65,12 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const [paymentChoiceVisible, setPaymentChoiceVisible] = useState(false);
   const [paymentBooking, setPaymentBooking] = useState<BookingInfo | null>(null);
 
-  // Confirmation modal state for real-time updates
-  const [confirmationVisible, setConfirmationVisible] = useState(false);
-  const [confirmationType, setConfirmationType] = useState<'checkin' | 'checkout' | 'payment'>('checkin');
-  const [previousSessionStatus, setPreviousSessionStatus] = useState<string | null>(null);
+  // Track previous session status for real-time updates
+  const previousSessionStatusRef = useRef<string | null>(null);
+  // Track which session has been notified about expiration to prevent duplicate alerts
+  const notifiedSessionRef = useRef<string | null>(null);
+  // BLOCK modal from showing after checkout to prevent glitches - USE STATE NOT REF to force re-render
+  const [checkoutCompleted, setCheckoutCompleted] = useState<boolean>(false);
 
   const openDetail = (space: any) => {
     setSelectedSpace(space);
@@ -102,6 +103,12 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const fetchActiveBooking = async (): Promise<BookingInfo | null> => {
     if (!user?.id) return null;
 
+    // BLOCK: Don't fetch or set anything if checkout was just completed
+    if (checkoutCompleted) {
+      console.log('[fetchActiveBooking] BLOCKED - checkout completed');
+      return null;
+    }
+
     try {
       // 1. Look for the most recent session that is still active
       const { data: sessionRows, error: sessionErr } = await supabase
@@ -120,27 +127,48 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
       const session = sessionRows[0];
 
-      // 2. Retrieve parking space details
-      const { data: space, error: spaceErr } = await supabase
-        .from('parking_spaces')
-        .select('*')
-        .eq('id', session.space_id)
-        .single();
+      // Store the current status for real-time comparison
+      previousSessionStatusRef.current = session.status;
 
-      if (spaceErr) throw spaceErr;
+      // 2. Retrieve parking space details (if space_id is not null)
+      let space = null;
+      if (session.space_id) {
+        const { data: spaceData, error: spaceErr } = await supabase
+          .from('parking_spaces')
+          .select('*')
+          .eq('id', session.space_id)
+          .single();
 
-      const activeBooking: BookingInfo = {
-        space: space as any,
-        startTime: new Date(session.start_time),
-        endTime: new Date(session.end_time),
-        sessionId: session.id,
-        vehicleId: session.vehicle_id,
-      };
+        if (spaceErr) {
+          console.warn('Error fetching space details:', spaceErr);
+          // Don't throw - space might have been deleted
+        } else {
+          space = spaceData;
+        }
+      } else {
+        console.log('Session has no space_id (space may have been deleted)');
+      }
 
-      setBookingInfo(activeBooking);
-      return activeBooking;
+      // Only set booking info if we have a space
+      if (space) {
+        const activeBooking: BookingInfo = {
+          space: space as any,
+          startTime: new Date(session.start_time),
+          endTime: new Date(session.end_time),
+          sessionId: session.id,
+          vehicleId: session.vehicle_id,
+        };
+
+        setBookingInfo(activeBooking);
+        return activeBooking;
+      } else {
+        // No space available, clear booking info
+        setBookingInfo(null);
+        return null;
+      }
     } catch (e) {
       console.error('Error fetching active booking:', e);
+      setBookingInfo(null);
       return null;
     }
   };
@@ -198,22 +226,108 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
+          console.log('=== [Real-time] Session UPDATE event received ===');
+          console.log('[Real-time] Full payload:', JSON.stringify(payload, null, 2));
+          console.log('[Real-time] payload.new:', payload.new);
+          console.log('[Real-time] payload.old:', payload.old);
+
           const newStatus = payload.new?.status;
           const oldStatus = payload.old?.status;
 
-          // Detect status changes and show confirmation
-          if (oldStatus !== newStatus) {
-            if (newStatus === 'checked_in' && oldStatus === 'booked') {
-              setConfirmationType('checkin');
-              setConfirmationVisible(true);
-            } else if (newStatus === 'completed' && oldStatus === 'checked_in') {
-              setConfirmationType('checkout');
-              setConfirmationVisible(true);
-            }
-          }
+          console.log('[Real-time] Status comparison:', {
+            oldStatus,
+            newStatus,
+            previousStatusRef: previousSessionStatusRef.current,
+            userId: payload.new?.user_id,
+            hasOldStatus: !!oldStatus,
+            hasNewStatus: !!newStatus,
+            statusChanged: oldStatus !== newStatus
+          });
 
-          // Re-fetch on any update (e.g., status changed)
-          fetchActiveBooking();
+          // Check if this is a status change
+          if (oldStatus && newStatus && oldStatus !== newStatus) {
+            console.log(`[Real-time] ✅ CONFIRMED STATUS CHANGE: ${oldStatus} → ${newStatus}`);
+
+            if (newStatus === 'checked_in' && oldStatus === 'booked') {
+              console.log('[Real-time] 🎯 CHECK-IN DETECTED');
+
+              // Update ref immediately to prevent double processing
+              previousSessionStatusRef.current = newStatus;
+
+              // Close ALL modals FIRST - force close immediately
+              setBookingModalVisible(false);
+              setDetailVisible(false);
+              setShowAllModal(false);
+              setPaymentChoiceVisible(false);
+              setShowProfileModal(false);
+              setShowVehicleModal(false);
+
+              console.log('[Real-time] All modals closed for check-in');
+
+              // Small delay to ensure modals are fully closed before navigation
+              setTimeout(() => {
+                // Navigate to History
+                navigation.navigate('History' as never);
+                console.log('[Real-time] ✅ Navigated to History screen');
+
+                // Show alert after navigation
+                setTimeout(() => {
+                  Alert.alert(
+                    '✅ Check-In Successful!',
+                    'Your vehicle has been checked in.',
+                    [{ text: 'OK' }]
+                  );
+                }, 200);
+              }, 50);
+            } else if (newStatus === 'completed' && oldStatus === 'checked_in') {
+              console.log('=== [CHECKOUT DEBUG] START ===');
+
+              // Prevent duplicate processing
+              if (previousSessionStatusRef.current === 'completed') {
+                console.log('[CHECKOUT DEBUG] ❌ ALREADY PROCESSED - SKIPPING');
+                return;
+              }
+
+              // Update refs and STATE IMMEDIATELY - state update will force re-render and unmount modal
+              previousSessionStatusRef.current = newStatus;
+              setCheckoutCompleted(true); // THIS WILL FORCE RE-RENDER AND UNMOUNT MODAL
+
+              // Clear ALL state immediately - FORCE MODAL CLOSED FIRST
+              setBookingInfo(null);
+              setPaymentBooking(null);
+              setBookingModalVisible(false);
+              setPaymentChoiceVisible(false);
+              setDetailVisible(false);
+              setShowAllModal(false);
+              setShowProfileModal(false);
+              setShowVehicleModal(false);
+
+              console.log('[CHECKOUT DEBUG] ✅ Checkout complete - all states cleared');
+
+              // Show alert after a small delay to let modals unmount
+              setTimeout(() => {
+                Alert.alert(
+                  '↩️ Check-Out Complete!',
+                  'Thank you for using our parking service.',
+                  [{ text: 'OK' }]
+                );
+              }, 200);
+            } else {
+              console.log('[Real-time] ⚠️ Status change but no matching transition:', { oldStatus, newStatus });
+              previousSessionStatusRef.current = newStatus;
+              fetchActiveBooking();
+            }
+          } else if (!oldStatus && newStatus) {
+            console.log('[Real-time] ⚠️ Update without old status (possibly INSERT or incomplete data)');
+            // Don't show confirmation, just update ref
+            previousSessionStatusRef.current = newStatus;
+          } else if (oldStatus === newStatus) {
+            console.log('[Real-time] No status change (other fields updated)');
+            // Don't update ref or fetch unnecessarily
+          } else {
+            console.log('[Real-time] ❌ Unexpected payload structure');
+          }
+          console.log('=== [Real-time] Event processing complete ===');
         }
       )
       .subscribe();
@@ -232,10 +346,13 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
         (payload) => {
           const paymentStatus = payload.new?.status;
 
-          // Show payment success confirmation
+          // Show payment success alert
           if (paymentStatus === 'completed') {
-            setConfirmationType('payment');
-            setConfirmationVisible(true);
+            Alert.alert(
+              '💳 Payment Successful!',
+              'Your payment has been processed successfully.',
+              [{ text: 'OK' }]
+            );
           }
         }
       )
@@ -252,6 +369,71 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
     const handler = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // No longer needed - checkout state will handle this
+  // Force close modals when checkout is completed
+  useEffect(() => {
+    if (checkoutCompleted) {
+      console.log('[useEffect] Checkout state detected - ensuring modals stay closed');
+      setBookingModalVisible(false);
+      setPaymentChoiceVisible(false);
+      setDetailVisible(false);
+      setShowAllModal(false);
+    }
+  }, [checkoutCompleted]);
+
+  // Monitor for expiring parking sessions (10 minutes warning)
+  useEffect(() => {
+    // Check every minute for sessions about to expire
+    const checkExpiration = () => {
+      if (!bookingInfo || !bookingInfo.endTime || !bookingInfo.sessionId) {
+        return;
+      }
+
+      const now = new Date();
+      const endTime = new Date(bookingInfo.endTime);
+      const timeUntilExpiry = endTime.getTime() - now.getTime();
+      const minutesUntilExpiry = Math.floor(timeUntilExpiry / (1000 * 60));
+
+      // Check if session is expiring within 10 minutes and hasn't been notified yet
+      if (minutesUntilExpiry <= 10 && minutesUntilExpiry > 0 && notifiedSessionRef.current !== bookingInfo.sessionId) {
+        // Mark this session as notified
+        notifiedSessionRef.current = bookingInfo.sessionId;
+
+        // Show expiration warning alert
+        Alert.alert(
+          '⏰ Parking Session Expiring Soon!',
+          `Your parking session will end in ${minutesUntilExpiry} minute${minutesUntilExpiry !== 1 ? 's' : ''}. Please return to your vehicle or extend your booking.`,
+          [
+            {
+              text: 'OK',
+              style: 'default',
+            },
+          ],
+          { cancelable: false }
+        );
+
+        console.log(`[Expiration Alert] Session ${bookingInfo.sessionId} expires in ${minutesUntilExpiry} minutes`);
+      } else if (minutesUntilExpiry <= 0) {
+        // Session has already expired
+        console.log(`[Expiration] Session ${bookingInfo.sessionId} has already expired`);
+        // Reset notification ref for expired session
+        if (notifiedSessionRef.current === bookingInfo.sessionId) {
+          notifiedSessionRef.current = null;
+        }
+      }
+    };
+
+    // Check immediately on mount/booking change
+    checkExpiration();
+
+    // Then check every 60 seconds
+    const intervalId = setInterval(checkExpiration, 60000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [bookingInfo]);
 
   // Pull-to-refresh
   const handleRefresh = useCallback(async () => {
@@ -363,6 +545,9 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   };
 
   const handleStartBooking = async (booking: BookingInfo) => {
+    // Reset checkout flag - allow modal to show for new booking
+    setCheckoutCompleted(false);
+
     // Optimistic UI: close the detail modal right away
     closeDetail();
 
@@ -552,54 +737,29 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
         onClose={() => setShowVehicleModal(false)}
       />
       {/* Payment choice before showing receipt */}
-      <PaymentChoiceModal
-        visible={paymentChoiceVisible}
-        booking={paymentBooking}
-        onClose={() => setPaymentChoiceVisible(false)}
-        onPaid={() => {
-          setPaymentChoiceVisible(false);
-          setBookingModalVisible(true);
-        }}
-      />
+      {paymentBooking !== null && !checkoutCompleted && paymentChoiceVisible && (
+        <PaymentChoiceModal
+          visible={true}
+          booking={paymentBooking}
+          onClose={() => setPaymentChoiceVisible(false)}
+          onPaid={() => {
+            setPaymentChoiceVisible(false);
+            // ONLY show booking modal if NOT after checkout
+            if (!checkoutCompleted) {
+              setBookingModalVisible(true);
+            }
+          }}
+        />
+      )}
       {/* Booking receipt (shown after payment choice) */}
-      <BookingReceiptModal visible={bookingModalVisible} onClose={() => setBookingModalVisible(false)} booking={bookingInfo} />
-      {/* GCash Test Modal */}
-
-      {/* Real-time Confirmation Modal */}
-      <Modal visible={confirmationVisible} transparent animationType="fade">
-        <View style={styles.confirmationOverlay}>
-          <View style={styles.confirmationCard}>
-            <View style={styles.confirmationIconContainer}>
-              <Ionicons
-                name={
-                  confirmationType === 'checkin' ? 'checkmark-circle' :
-                  confirmationType === 'checkout' ? 'exit' :
-                  'card'
-                }
-                size={80}
-                color="#4CAF50"
-              />
-            </View>
-            <Text style={styles.confirmationTitle}>
-              {confirmationType === 'checkin' && 'Check-In Successful!'}
-              {confirmationType === 'checkout' && 'Check-Out Complete!'}
-              {confirmationType === 'payment' && 'Payment Successful!'}
-            </Text>
-            <Text style={styles.confirmationMessage}>
-              {confirmationType === 'checkin' && 'Your vehicle has been checked in. Enjoy your parking!'}
-              {confirmationType === 'checkout' && 'Thank you for using our parking service.'}
-              {confirmationType === 'payment' && 'Your payment has been processed successfully.'}
-            </Text>
-            <TouchableOpacity
-              style={styles.confirmationButton}
-              onPress={() => setConfirmationVisible(false)}
-            >
-              <Text style={styles.confirmationButtonText}>OK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
+      {bookingInfo !== null && !checkoutCompleted && bookingModalVisible && (
+        <BookingReceiptModal
+          key={bookingInfo.sessionId}
+          visible={true}
+          onClose={() => setBookingModalVisible(false)}
+          booking={bookingInfo}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -760,53 +920,6 @@ const createStyles = () => {
       flexDirection: 'row',
       paddingVertical: scaledSpacing(12),
       paddingHorizontal: 4,
-    },
-    confirmationOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-    },
-    confirmationCard: {
-      backgroundColor: '#1E1E1E',
-      borderRadius: 20,
-      padding: 30,
-      width: '90%',
-      maxWidth: 400,
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: '#4CAF50',
-    },
-    confirmationIconContainer: {
-      marginBottom: 20,
-    },
-    confirmationTitle: {
-      fontSize: scaledFont(24),
-      fontWeight: 'bold',
-      color: '#4CAF50',
-      marginBottom: 10,
-      textAlign: 'center',
-    },
-    confirmationMessage: {
-      fontSize: scaledFont(16),
-      color: '#FFFFFF',
-      textAlign: 'center',
-      marginBottom: 25,
-      lineHeight: scaledFont(22),
-    },
-    confirmationButton: {
-      backgroundColor: '#4CAF50',
-      paddingHorizontal: 40,
-      paddingVertical: 12,
-      borderRadius: 25,
-      minWidth: 120,
-    },
-    confirmationButtonText: {
-      color: '#FFFFFF',
-      fontSize: scaledFont(16),
-      fontWeight: 'bold',
-      textAlign: 'center',
     },
   });
 };

@@ -51,7 +51,49 @@ const HistoryScreen: React.FC<any> = ({ navigation }) => {
 
   useEffect(() => {
     fetchSessions();
-  }, []);
+
+    // Real-time subscription for parking_sessions changes
+    const sessionChannel = supabase
+      .channel(`parking_sessions_user_${user?.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'parking_sessions',
+          filter: `user_id=eq.${user?.id}`,
+        },
+        (payload) => {
+          console.log('[History] Session change detected:', payload);
+          fetchSessions(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for payment changes
+    const paymentChannel = supabase
+      .channel(`payments_user_${user?.id}_history`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payments',
+          filter: `user_id=eq.${user?.id}`,
+        },
+        (payload) => {
+          console.log('[History] Payment change detected:', payload);
+          fetchSessions(); // Refresh to update payment status
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      sessionChannel.unsubscribe();
+      paymentChannel.unsubscribe();
+    };
+  }, [user?.id]);
 
   const fetchSessions = async () => {
     if (!user?.id) return;

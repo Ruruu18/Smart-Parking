@@ -130,23 +130,167 @@ const OccupiedSpaceDetails = ({ visible, onClose, spaceId, onCheckoutSuccess }) 
 
       if (rpcError) throw rpcError;
 
-      // Set space_id to NULL in the session to preserve history before deleting space
-      const { error: updateError } = await supabase
-        .from('parking_sessions')
-        .update({ space_id: null })
-        .eq('id', sessionDetails.id);
+      // STEP 1: Get space details BEFORE deletion to preserve in history
+      const { data: spaceData, error: spaceError } = await supabase
+        .from('parking_spaces')
+        .select('space_number, section')
+        .eq('id', spaceId)
+        .single();
 
-      if (updateError) {
-        console.warn('Failed to unlink space from session:', updateError);
+      if (spaceError) {
+        console.error('Error fetching space details:', spaceError);
       }
 
-      // DELETE the parking space entirely (history is preserved)
+      const spaceNumber = spaceData?.space_number || '';
+      const spaceSection = spaceData?.section || '';
+
+      console.log(`Preserving space info: ${spaceNumber} (${spaceSection})`);
+
+      // STEP 2: Update user_activities to preserve space info in details JSON
+      // Query by BOTH space_id AND session_id to catch ALL activities including booking activities
+      if (spaceNumber) {
+        // First get all session IDs for this space
+        const { data: allSessions, error: sessionsError } = await supabase
+          .from('parking_sessions')
+          .select('id')
+          .eq('space_id', spaceId);
+
+        const sessionIds = allSessions ? allSessions.map(s => s.id) : [];
+        console.log(`Found ${sessionIds.length} sessions for space ${spaceId}`);
+
+        let allActivities = [];
+        let sessionActivitiesCount = 0;
+
+        // Query 1: Activities with space_id (catches check-in/check-out activities)
+        const { data: spaceActivities } = await supabase
+          .from('user_activities')
+          .select('id, details, type, space_id, session_id')
+          .eq('space_id', spaceId);
+
+        if (spaceActivities) {
+          allActivities = [...spaceActivities];
+        }
+
+        // Query 2: Activities with session_id (catches booking activities!)
+        if (sessionIds.length > 0) {
+          const { data: sessionActivities } = await supabase
+            .from('user_activities')
+            .select('id, details, type, space_id, session_id')
+            .in('session_id', sessionIds);
+
+          if (sessionActivities) {
+            sessionActivitiesCount = sessionActivities.length;
+            // Merge, avoiding duplicates
+            const existingIds = new Set(allActivities.map(a => a.id));
+            const newActivities = sessionActivities.filter(a => !existingIds.has(a.id));
+            allActivities = [...allActivities, ...newActivities];
+          }
+        }
+
+        console.log(`Found ${allActivities.length} total activities to update (${spaceActivities?.length || 0} from space, ${sessionActivitiesCount} from sessions)`);
+        console.log('[Checkout] Activity IDs to update:', allActivities.map(a => ({
+          id: a.id,
+          type: a.type,
+          has_space_id: !!a.space_id,
+          has_session_id: !!a.session_id,
+        })));
+
+        if (allActivities.length > 0) {
+          // Update each activity's details to include space info
+          let updated = 0;
+          for (const activity of allActivities) {
+            let details = {};
+            try {
+              const parsed = activity.details ? JSON.parse(activity.details) : {};
+              if (typeof parsed === 'object' && parsed !== null) {
+                details = parsed;
+              }
+            } catch (e) {
+              console.warn(`Details is not JSON for activity ${activity.id}`);
+              details = {};
+            }
+
+            // Check if space_number already has a valid value
+            const hasSpaceNumber = details.space_number && details.space_number !== '';
+
+            if (!hasSpaceNumber) {
+              // Add/update space info (preserve all existing fields)
+              const updatedDetails = {
+                ...details,
+                space_number: spaceNumber,
+                space_section: spaceSection,
+              };
+
+              console.log(`[Checkout] Saving to activity ${activity.id}:`, {
+                type: activity.type,
+                old_fields: Object.keys(details).length,
+                new_fields: Object.keys(updatedDetails).length,
+                space_number: updatedDetails.space_number,
+              });
+
+              const { error: updateError } = await supabase
+                .from('user_activities')
+                .update({ details: JSON.stringify(updatedDetails) })
+                .eq('id', activity.id);
+
+              if (updateError) {
+                console.error(`[Checkout] ❌ FAILED to update activity ${activity.id}:`, updateError);
+              } else {
+                console.log(`[Checkout] ✅ Successfully saved activity ${activity.id}`);
+                updated++;
+              }
+            } else {
+              console.log(`[Checkout] ⏭️ Skipping activity ${activity.id} - already has space: ${details.space_number}`);
+            }
+          }
+
+          console.log(`Updated ${updated} activities with space information (${allActivities.length - updated} already had space info)`);
+        }
+      }
+
+      // STEP 3: Set space_id to NULL in ALL sessions for this space to preserve history
+      // IMPORTANT: This preserves booking, check-in, check-out, and PAYMENT records
+      // by unlinking sessions from the space before deletion. This prevents CASCADE deletion
+      // of sessions (and their associated payments) when the parking space is deleted.
+      // The database also has ON DELETE SET NULL constraint as a safeguard.
+      const { data: allSessions, error: findError } = await supabase
+        .from('parking_sessions')
+        .select('id')
+        .eq('space_id', spaceId);
+
+      if (findError) {
+        console.error('Error finding sessions for space:', findError);
+      }
+
+      console.log(`Found ${allSessions?.length || 0} sessions linked to space ${spaceId}`);
+
+      if (allSessions && allSessions.length > 0) {
+        const { error: updateError } = await supabase
+          .from('parking_sessions')
+          .update({ space_id: null })
+          .in('id', allSessions.map(s => s.id));
+
+        if (updateError) {
+          console.error('Failed to unlink sessions from space:', updateError);
+          throw updateError; // Don't delete space if we can't unlink sessions
+        }
+
+        console.log(`Successfully unlinked ${allSessions.length} sessions from space`);
+      }
+
+      // STEP 4: DELETE the parking space entirely (only after preserving data)
+      // Since sessions are preserved and activities have space info, all history is preserved
       const { error: deleteError } = await supabase
         .from('parking_spaces')
         .delete()
         .eq('id', spaceId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Error deleting parking space:', deleteError);
+        throw deleteError;
+      }
+
+      console.log(`Successfully deleted parking space ${spaceId}`);
 
       alert('✅ Vehicle checked out and parking space deleted successfully!');
 

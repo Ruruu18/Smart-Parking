@@ -17,12 +17,12 @@ CREATE TABLE IF NOT EXISTS parking_spaces (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
-
+ 
 -- Parking sessions table (replaces bookings with more comprehensive tracking)
 CREATE TABLE IF NOT EXISTS parking_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
-  space_id UUID NOT NULL,
+  space_id UUID, -- Nullable to preserve history when parking space is deleted
   vehicle_id TEXT,
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS parking_sessions (
   status TEXT NOT NULL CHECK (status IN ('booked', 'checked_in', 'in_progress', 'completed', 'cancelled')) DEFAULT 'booked',
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
-  FOREIGN KEY (space_id) REFERENCES parking_spaces(id) ON DELETE CASCADE
+  FOREIGN KEY (space_id) REFERENCES parking_spaces(id) ON DELETE SET NULL -- Preserve sessions when space deleted
 );
 
 -- Reviews table

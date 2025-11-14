@@ -1,11 +1,11 @@
 import 'react-native-url-polyfill/auto';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
 import * as Font from 'expo-font';
 import { useCallback, useEffect, useState } from 'react';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import SplashScreen from './src/screens/splash/SplashScreen';
 import OnboardingScreen from './src/screens/onboarding/OnboardingScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
@@ -48,27 +48,27 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <VehicleProvider>
-      <NavigationContainer>
-        <StatusBar style="light" />
-        <Stack.Navigator
-          initialRouteName="Splash"
-          screenOptions={{
-            headerShown: false
-          }}
-        >
-          <Stack.Screen name="Splash" component={SplashScreen} />
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-          <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="History" component={HistoryScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-      </VehicleProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <VehicleProvider>
+          <NavigationContainer>
+            <StatusBar style="light" />
+            <Stack.Navigator
+              initialRouteName="Splash"
+              screenOptions={{
+                headerShown: false
+              }}
+            >
+              <Stack.Screen name="Splash" component={SplashScreen} />
+              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Register" component={RegisterScreen} />
+              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="History" component={HistoryScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </VehicleProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({});

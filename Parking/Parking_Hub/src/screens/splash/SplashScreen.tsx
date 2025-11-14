@@ -1,14 +1,53 @@
 import React, { useEffect } from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../../supabase';
 import { getLogoSize, getBrandNameFontSize, createResponsiveStyles } from '../../utils/responsive';
 
 const SplashScreen = ({ navigation }: { navigation: any }) => {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigation.replace('Onboarding');
-    }, 3000);
+    const checkAuthAndNavigate = async () => {
+      try {
+        // Wait for splash screen display (3 seconds)
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
-    return () => clearTimeout(timer);
+        // Check if onboarding was completed
+        const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+
+        // Check if user has active session
+        const { data: { session } } = await supabase.auth.getSession();
+
+        console.log('Navigation check:', {
+          onboardingCompleted,
+          hasSession: !!session
+        });
+
+        // Navigate based on state (prioritize session over onboarding)
+        if (session?.user) {
+          // User has active session - go directly to Home (auto-login)
+          console.log('Navigating to Home (logged in - auto-login)');
+          // Also mark onboarding as completed if not already
+          if (!onboardingCompleted) {
+            await AsyncStorage.setItem('onboardingCompleted', 'true');
+          }
+          navigation.replace('Home');
+        } else if (!onboardingCompleted) {
+          // First time user - show onboarding
+          console.log('Navigating to Onboarding (first time)');
+          navigation.replace('Onboarding');
+        } else {
+          // Onboarding done but not logged in - show Login
+          console.log('Navigating to Login');
+          navigation.replace('Login');
+        }
+      } catch (error) {
+        console.error('Error checking auth state:', error);
+        // On error, show onboarding as fallback
+        navigation.replace('Onboarding');
+      }
+    };
+
+    checkAuthAndNavigate();
   }, [navigation]);
 
   return (

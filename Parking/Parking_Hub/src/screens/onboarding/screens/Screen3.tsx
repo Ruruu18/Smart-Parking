@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createResponsiveStyles,
   scaledFont,
@@ -19,17 +20,30 @@ type NavigationProps = {
 
 const Screen3: React.FC<Screen3Props> = ({ onSkip }) => {
   const navigation = useNavigation<NavigationProps>();
+
+  const handleGetStarted = async () => {
+    try {
+      // Mark onboarding as completed
+      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      console.log('Onboarding completed - saved to storage');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Error saving onboarding completion:', error);
+      navigation.navigate('Login');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.backgroundImage}>
-        <Image 
+        <Image
           source={require('../../../../assets/images/backdrop/Onboarding 2-C.png')}
           style={styles.backgroundImage}
           resizeMode="cover"
         />
         <View style={styles.contentContainer}>
           <View style={styles.headerContainer}>
-            <Image 
+            <Image
               source={require('../../../../assets/images/icons/member.png')}
               style={[styles.memberIcon, { tintColor: '#FF0000' }]}
             />
@@ -38,9 +52,9 @@ const Screen3: React.FC<Screen3Props> = ({ onSkip }) => {
           <Text style={styles.description}>Create Account to book and manages the parking facilities at <Text style={styles.highlightText}>Parking Hub</Text></Text>
         </View>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.getButton}
-            onPress={() => navigation.navigate('Login')}
+            onPress={handleGetStarted}
           >
             <Text style={styles.getText}>Get Started</Text>
           </TouchableOpacity>

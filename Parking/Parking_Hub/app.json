@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Parking_Hub",
+    "name": "Parking Hub",
     "slug": "Parking_Hub",
     "scheme": "parkinghub",
     "version": "1.0.0",
@@ -20,10 +20,21 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icons/wheel.png",
         "backgroundColor": "#000000"
-      }
+      },
+      "package": "com.parkinghub.app",
+      "jsEngine": "hermes"
     },
     "web": {
       "favicon": "./assets/images/icons/wheel.png"
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c217a63b-74d1-4ed8-9209-69752262e42f"
+      }
+    },
+    "owner": "ruru18"
   }
 }

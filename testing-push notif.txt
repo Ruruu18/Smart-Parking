@@ -1,0 +1,22 @@
+ -- Find your user's active session and set it to expire in 8 minutes
+  UPDATE parking_sessions
+  SET end_time = NOW() + INTERVAL '8 minutes'
+  WHERE user_id = 'YOUR_USER_ID_HERE'
+    AND status IN ('booked', 'checked_in', 'in_progress')
+  ORDER BY created_at DESC
+  LIMIT 1;
+
+  Or to create a test session that expires in 9 minutes:
+
+  -- Replace with actual user_id, space_id, and vehicle_id
+  INSERT INTO parking_sessions (user_id, space_id, vehicle_id, start_time, end_time, status,
+  total_amount)
+  VALUES (
+    'YOUR_USER_ID',
+    'YOUR_SPACE_ID',
+    'TEST-VEHICLE-123',
+    NOW(),
+    NOW() + INTERVAL '9 minutes',
+    'checked_in',
+    100
+  );

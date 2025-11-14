@@ -393,15 +393,22 @@ const VehicleScanner = ({ visible, onClose, onScan }) => {
               <button
                 onClick={async () => {
                   const action = sessionDetails?.isCheckedIn ? 'checkout' : 'checkin';
+                  console.log('[VehicleScanner] Button clicked');
+                  console.log('[VehicleScanner] Session status:', sessionDetails?.session?.status);
+                  console.log('[VehicleScanner] isCheckedIn:', sessionDetails?.isCheckedIn);
+                  console.log('[VehicleScanner] Determined action:', action);
+
                   try {
                     // Parse QR for session id
                     let info = null;
                     try { info = JSON.parse(scannedData); } catch {}
                     const sessionId = info?.sid || sessionDetails?.session?.id || null;
+                    console.log('[VehicleScanner] Session ID:', sessionId);
 
                     const nowIso = new Date().toISOString();
                     if (sessionId) {
                       if (action === 'checkin') {
+                        console.log('[VehicleScanner] Executing CHECK-IN');
                         // Set start_time to real check-in time
                         try {
                           await supabase.rpc('set_session_start_time_for_admin', {
@@ -412,46 +419,24 @@ const VehicleScanner = ({ visible, onClose, onScan }) => {
                           console.warn('Failed to set session start time:', e);
                         }
                       } else if (action === 'checkout') {
+                        console.log('[VehicleScanner] Executing CHECK-OUT');
                         // Set end_time to real checkout time
                         try {
                           await supabase.rpc('set_session_end_time_for_admin', {
                             session_id: sessionId,
                             end_ts: nowIso,
                           });
+                          console.log('[VehicleScanner] CHECK-OUT RPC completed');
                         } catch (e) {
                           console.warn('Failed to set session end time:', e);
                         }
 
-                        // Set space_id to NULL to preserve booking history before deleting space
-                        if (sessionId) {
-                          try {
-                            await supabase
-                              .from('parking_sessions')
-                              .update({ space_id: null })
-                              .eq('id', sessionId);
-                          } catch (e) {
-                            console.warn('Failed to unlink space from session:', e);
-                          }
-                        }
-
-                        // DELETE the parking space after checkout (history is preserved)
-                        if (sessionDetails?.spaceId) {
-                          try {
-                            const { error: deleteError } = await supabase
-                              .from('parking_spaces')
-                              .delete()
-                              .eq('id', sessionDetails.spaceId);
-
-                            if (deleteError) {
-                              console.error('Failed to delete parking space:', deleteError);
-                            }
-                          } catch (e) {
-                            console.warn('Failed to delete parking space:', e);
-                          }
-                        }
+                        // NOTE: Space deletion is handled by AdminDashboard.handleCheckOut
+                        // after logging the activity with the space name
                       }
                     }
                   } finally {
+                    console.log('[VehicleScanner] Calling onScan with action:', action);
                     onScan(scannedData, action);
                   }
                 }}

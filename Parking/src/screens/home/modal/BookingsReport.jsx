@@ -39,8 +39,21 @@ export default function BookingsReport() {
   // Export filtered rows as Excel
   const handleExportExcel = async () => {
     try {
-      const mod = await import('xlsx');
-      const XLSX = mod.default || mod;
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Bookings');
+
+      worksheet.columns = [
+        { header: 'Time', key: 'Time', width: 20 },
+        { header: 'User', key: 'User', width: 20 },
+        { header: 'Vehicle', key: 'Vehicle', width: 25 },
+        { header: 'Plate', key: 'Plate', width: 15 },
+        { header: 'Space', key: 'Space', width: 10 },
+        { header: 'Section', key: 'Section', width: 10 },
+        { header: 'Status', key: 'Status', width: 15 },
+        { header: 'Total', key: 'Total', width: 12 },
+      ];
+
       const rows = filtered.map((r) => {
         const d = parseDetails(r.details);
         return {
@@ -54,13 +67,12 @@ export default function BookingsReport() {
           Total: Number(d.total_amount || 0),
         };
       });
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Bookings');
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      triggerDownload(new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `bookings_${Date.now()}.xlsx`);
+
+      worksheet.addRows(rows);
+      const buffer = await workbook.xlsx.writeBuffer();
+      triggerDownload(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `bookings_${Date.now()}.xlsx`);
     } catch (e) {
-      alert('Excel export requires the "xlsx" package. Please install it: npm i xlsx');
+      alert('Excel export requires the "exceljs" package. Please install it: npm i exceljs');
       console.error(e);
     }
   };
@@ -123,6 +135,17 @@ export default function BookingsReport() {
         if (error) throw error;
 
         const list = data || [];
+
+        // Debug: Check raw details from database
+        console.log('[BookingsReport] Raw data from database - first 3 records:',
+          list.slice(0, 3).map(r => ({
+            id: r.id,
+            created_at: r.created_at,
+            details_raw: r.details,
+            details_parsed: parseDetails(r.details),
+          }))
+        );
+
         // Debug: high-level stats
         try {
           const missingUser = list.filter(r => !r.user_id).length;
@@ -287,8 +310,10 @@ export default function BookingsReport() {
               vehicle_model: d.vehicle_model || vehicle?.vehicle_model || '',
               plate: d.plate || vehicle?.vehicle_plate_number || '',
               vehicle_plate_number: d.vehicle_plate_number || vehicle?.vehicle_plate_number || '',
-              space_number: d.space_number || space?.space_number || '',
-              space_section: d.space_section || d.section || space?.section || '',
+              // IMPORTANT: Preserve space_number if it exists (even if space is deleted)
+              // Only fallback to space lookup if space_number is missing or truly empty
+              space_number: (d.space_number && d.space_number !== '') ? d.space_number : (space?.space_number || ''),
+              space_section: (d.space_section && d.space_section !== '') ? d.space_section : (d.section || space?.section || ''),
               status: d.status || session?.status || '',
               daily_rate_snapshot: d.daily_rate_snapshot ?? session?.daily_rate_snapshot ?? (!isNaN(pricePerDay) ? pricePerDay : ''),
               price_per_day: d.price_per_day ?? (!isNaN(pricePerDay) ? pricePerDay : ''),

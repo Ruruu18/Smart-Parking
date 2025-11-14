@@ -3,8 +3,6 @@
 // physical device).  This removes the need to manually update the development machine's
 // IP address each time the network changes.
 
-import { Platform } from 'react-native';
-
 // Port that your Express backend listens on (matches web server/index.mjs -> 3001)
 const DEV_API_PORT = 3001;
 
@@ -26,16 +24,15 @@ const devHost: string =
 let BASE_URL: string;
 
 if (__DEV__) {
-  if (Platform.OS === 'android') {
-    // Android emulator has a special DNS entry to access the host machine
-    BASE_URL = makeUrl('10.0.2.2');
-  } else {
-    // iOS simulator or physical device (if same network IP is supplied)
-    BASE_URL = makeUrl(devHost);
-  }
+  // Use devHost (from EXPO_PUBLIC_DEV_API_HOST) for both Android and iOS
+  // For Android emulator: set EXPO_PUBLIC_DEV_API_HOST=10.0.2.2
+  // For physical devices: set EXPO_PUBLIC_DEV_API_HOST=<your-local-ip>
+  BASE_URL = makeUrl(devHost);
 } else {
-  // Production URL – replace with your production backend URL
-  BASE_URL = 'https://your-production-api.com';
+  // Production: Using localhost for now since backend needs to be deployed
+  // TODO: Deploy Express backend to a cloud service (Railway, Render, etc.)
+  // and update this URL with the production backend URL
+  BASE_URL = makeUrl('localhost');
 }
 
 // API endpoints

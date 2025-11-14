@@ -32,8 +32,18 @@ export default function Payments() {
 
   const handleExportExcel = async () => {
     try {
-      const mod = await import('xlsx');
-      const XLSX = mod.default || mod;
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Payments');
+
+      worksheet.columns = [
+        { header: 'Time', key: 'Time', width: 20 },
+        { header: 'User', key: 'User', width: 20 },
+        { header: 'Method', key: 'Method', width: 15 },
+        { header: 'Status', key: 'Status', width: 15 },
+        { header: 'Amount', key: 'Amount', width: 12 },
+      ];
+
       const rows = filtered.map((r) => ({
         Time: new Date(r.created_at).toISOString(),
         User: r.user_name || '',
@@ -41,13 +51,12 @@ export default function Payments() {
         Status: r.status || '',
         Amount: Number(r.amount || 0),
       }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Payments');
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      triggerDownload(new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `payments_${Date.now()}.xlsx`);
+
+      worksheet.addRows(rows);
+      const buffer = await workbook.xlsx.writeBuffer();
+      triggerDownload(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `payments_${Date.now()}.xlsx`);
     } catch (e) {
-      alert('Excel export requires the "xlsx" package. Please install it: npm i xlsx');
+      alert('Excel export requires the "exceljs" package. Please install it: npm i exceljs');
       console.error(e);
     }
   };
@@ -90,7 +99,7 @@ export default function Payments() {
       try {
         let query = supabase
           .from('payments')
-          .select('id, amount, payment_method, status, created_at, session_id')
+          .select('id, amount, payment_method, status, created_at, session_id, user_id')
           .order('created_at', { ascending: false })
           .limit(500);
 
@@ -101,20 +110,10 @@ export default function Payments() {
         if (error) throw error;
 
         const pays = data || [];
-        // Hydrate user_name using session_id -> user_activities (booking) -> profiles
-        const sessionIds = Array.from(new Set(pays.map(p => p.session_id).filter(Boolean)));
-        let userActs = [];
-        if (sessionIds.length > 0) {
-          const { data: acts, error: aerr } = await supabase
-            .from('user_activities')
-            .select('session_id, user_id')
-            .eq('type', 'booking')
-            .in('session_id', sessionIds);
-          if (!aerr && acts) userActs = acts;
-        }
-        const sessionToUser = new Map(userActs.map(a => [a.session_id, a.user_id]));
-        const userIds = Array.from(new Set(userActs.map(a => a.user_id).filter(Boolean)));
+        // Hydrate user_name using user_id directly from payments table
+        const userIds = Array.from(new Set(pays.map(p => p.user_id).filter(Boolean)));
         let profiles = [];
+
         if (userIds.length > 0) {
           try {
             const res = await supabase
@@ -123,6 +122,8 @@ export default function Payments() {
               .in('id', userIds);
             profiles = res.data || [];
           } catch {}
+
+          // Fetch missing profiles using RPC
           const have = new Set((profiles || []).map(p => p.id));
           const missing = userIds.filter(id => !have.has(id));
           if (missing.length > 0) {
@@ -138,14 +139,12 @@ export default function Payments() {
             profiles = [...profiles, ...rpc.filter(Boolean)];
           }
         }
+
         const profileById = new Map((profiles || []).map(p => [p.id, p]));
 
         const hydrated = pays.map(p => ({
           ...p,
-          user_name: (() => {
-            const uid = p.session_id ? sessionToUser.get(p.session_id) : null;
-            return uid ? (profileById.get(uid)?.name || '') : '';
-          })(),
+          user_name: p.user_id ? (profileById.get(p.user_id)?.name || '') : '',
         }));
 
         setRows(hydrated);

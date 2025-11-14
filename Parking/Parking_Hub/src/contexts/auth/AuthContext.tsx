@@ -5,9 +5,10 @@ import { supabase } from '@/supabase';
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   register: (name: string, email: string, password: string) => Promise<AuthResult>;
   login: (email: string, password: string) => Promise<AuthResult>;
-  logout: () => void;
+  logout: () => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -28,21 +29,40 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Check for stored user on app load
+  // Check for existing Supabase session on app load (auto-login)
   useEffect(() => {
-    const loadUser = async () => {
+    const restoreSession = async () => {
       try {
-        const storedUser = await AsyncStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        // Get the current session from Supabase (persisted automatically)
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          // Session exists, restore user
+          const userData: User = {
+            id: session.user.id,
+            name: session.user.user_metadata?.full_name || '',
+            email: session.user.email ?? '',
+          };
+          setUser(userData);
+          await AsyncStorage.setItem('user', JSON.stringify(userData));
+          console.log('Session restored - user auto-logged in');
+        } else {
+          // No session, clear user
+          setUser(null);
+          await AsyncStorage.removeItem('user');
+          console.log('No session found - user not logged in');
         }
       } catch (error) {
-        console.error('Error loading user from storage:', error);
+        console.error('Error restoring session:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
     };
-    
-    loadUser();
+
+    restoreSession();
   }, []);
 
   // SUPABASE REGISTER
@@ -104,7 +124,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         return { success: false, message };
       }
 
-      // Save user data locally (optional)
+      // Save user data locally (Supabase session is automatically persisted)
       const userData: User = {
         id: data.user.id,
         name: data.user.user_metadata?.full_name || '',
@@ -113,6 +133,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setUser(userData);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
 
+      console.log('User logged in successfully - session persisted');
       return { success: true };
     } catch (err: any) {
       const message = err.message || 'Login failed';
@@ -123,11 +144,21 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Sign out from Supabase (clears session)
       await supabase.auth.signOut();
+
+      // Clear user state
       setUser(null);
+
+      // Clear AsyncStorage
       await AsyncStorage.removeItem('user');
+
+      console.log('User logged out successfully');
     } catch (error) {
       console.error('Error during logout:', error);
+      // Force clear even if Supabase signOut fails
+      setUser(null);
+      await AsyncStorage.removeItem('user');
     }
   };
 
@@ -158,13 +189,14 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        isAuthenticated: !!user, 
-        register, 
-        login, 
-        logout, 
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        register,
+        login,
+        logout,
         error,
         clearError
       }}
