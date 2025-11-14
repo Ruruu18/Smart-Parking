@@ -1,0 +1,15 @@
+# Don't upload these to Railway
+node_modules
+dist
+.vite
+.env
+.env.local
+*.log
+coverage
+.DS_Store
+src
+public
+index.html
+vite.config.js
+tailwind.config.js
+postcss.config.js
