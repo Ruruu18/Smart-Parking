@@ -29,10 +29,18 @@ if (__DEV__) {
   // For physical devices: set EXPO_PUBLIC_DEV_API_HOST=<your-local-ip>
   BASE_URL = makeUrl(devHost);
 } else {
-  // Production: Using localhost for now since backend needs to be deployed
-  // TODO: Deploy Express backend to a cloud service (Railway, Render, etc.)
-  // and update this URL with the production backend URL
-  BASE_URL = makeUrl('localhost');
+  // Production: Use deployed Railway backend URL
+  // Set EXPO_PUBLIC_API_URL in eas.json for your deployed backend
+  // Example: https://your-project.up.railway.app
+  const deployedUrl = process.env.EXPO_PUBLIC_API_URL;
+
+  if (deployedUrl) {
+    BASE_URL = deployedUrl; // Use full URL from environment
+  } else {
+    // Fallback for local testing of preview builds
+    const productionHost = process.env.EXPO_PUBLIC_PRODUCTION_API_HOST || devHost;
+    BASE_URL = makeUrl(productionHost);
+  }
 }
 
 // API endpoints

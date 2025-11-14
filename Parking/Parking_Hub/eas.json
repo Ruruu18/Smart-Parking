@@ -12,14 +12,16 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://nyqwdgkbqtlruoinecjo.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55cXdkZ2ticXRscnVvaW5lY2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1NDM3NjAsImV4cCI6MjA2NTExOTc2MH0.7jjhS4uMX3uQwa6irR5qeWwc3bi9dVDsNwjYlLdZcYo"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55cXdkZ2ticXRscnVvaW5lY2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1NDM3NjAsImV4cCI6MjA2NTExOTc2MH0.7jjhS4uMX3uQwa6irR5qeWwc3bi9dVDsNwjYlLdZcYo",
+        "EXPO_PUBLIC_API_URL": "https://your-project.up.railway.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://nyqwdgkbqtlruoinecjo.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55cXdkZ2ticXRscnVvaW5lY2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1NDM3NjAsImV4cCI6MjA2NTExOTc2MH0.7jjhS4uMX3uQwa6irR5qeWwc3bi9dVDsNwjYlLdZcYo"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55cXdkZ2ticXRscnVvaW5lY2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1NDM3NjAsImV4cCI6MjA2NTExOTc2MH0.7jjhS4uMX3uQwa6irR5qeWwc3bi9dVDsNwjYlLdZcYo",
+        "EXPO_PUBLIC_API_URL": "https://your-project.up.railway.app"
       }
     }
   },
